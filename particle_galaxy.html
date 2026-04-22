@@ -98,6 +98,31 @@
         .auto-play-options input[type="radio"] {
             margin-right: 5px;
         }
+
+        .effect-mode-options {
+            position: absolute;
+            top: 130px;
+            left: 20px;
+            font-size: 14px;
+            color: #0ff;
+            text-shadow: 0 0 10px #0ff;
+            z-index: 15;
+            pointer-events: auto;
+        }
+
+        .effect-mode-options div {
+            margin-bottom: 10px;
+        }
+
+        .effect-mode-options label {
+            display: block;
+            margin-bottom: 5px;
+            cursor: pointer;
+        }
+
+        .effect-mode-options input[type="radio"] {
+            margin-right: 5px;
+        }
     </style>
 </head>
 <body>
@@ -118,6 +143,14 @@
         <label><input type="radio" name="autoPlay" value="muted" checked> 静音自动播放</label>
         <label><input type="radio" name="autoPlay" value="interactive"> 交互后播放</label>
         <label><input type="radio" name="autoPlay" value="manual"> 手动播放</label>
+    </div>
+    
+    <div class="effect-mode-options">
+        <div>效果模式:</div>
+        <label><input type="radio" name="effectMode" value="0" checked> 普通模式</label>
+        <label><input type="radio" name="effectMode" value="1"> 轨迹模式</label>
+        <label><input type="radio" name="effectMode" value="2"> 爆炸模式</label>
+        <label><input type="radio" name="effectMode" value="3"> 波浪模式</label>
     </div>
     
     <audio id="bgm" loop muted>
@@ -146,11 +179,16 @@
         let particles = [];
         let stars = [];
         let mouseX = 0, mouseY = 0;
+        let lastMouseX = 0, lastMouseY = 0;
+        let isMouseDown = false;
+        let mouseTrail = [];
+        let explosions = [];
         let lastTime = performance.now();
         let frameCount = 0;
         let fps = 60;
         let time = 0;
         let clickRings = [];
+        let effectMode = 0; // 0: normal, 1: trail, 2: explosion, 3: wave
 
         const PARTICLE_COUNT = 250;
         const STAR_COUNT = 150;
@@ -308,6 +346,75 @@
             }
         }
 
+        class MouseTrail {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.alpha = 0.8;
+                this.radius = 3 + Math.random() * 2;
+                this.hue = 180 + Math.random() * 90;
+                this.speed = 0.5 + Math.random() * 0.5;
+            }
+
+            update() {
+                this.alpha -= 0.02;
+                this.radius += this.speed;
+                return this.alpha > 0;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(${this.hue}, 100%, 70%, ${this.alpha})`;
+                ctx.fill();
+            }
+        }
+
+        class Explosion {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.particles = [];
+                this.life = 60;
+                this.hue = 180 + Math.random() * 90;
+                
+                for (let i = 0; i < 20; i++) {
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: (Math.random() - 0.5) * 8,
+                        vy: (Math.random() - 0.5) * 8,
+                        radius: 1 + Math.random() * 2,
+                        alpha: 1,
+                        life: 60
+                    });
+                }
+            }
+
+            update() {
+                this.life--;
+                this.particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vx *= 0.95;
+                    p.vy *= 0.95;
+                    p.alpha -= 0.016;
+                    p.life--;
+                });
+                this.particles = this.particles.filter(p => p.life > 0);
+                return this.life > 0 && this.particles.length > 0;
+            }
+
+            draw() {
+                this.particles.forEach(p => {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(${this.hue + Math.random() * 30}, 100%, 70%, ${p.alpha})`;
+                    ctx.fill();
+                });
+            }
+        }
+
         function init() {
             resize();
             particles = [];
@@ -411,6 +518,28 @@
                 s.draw();
             });
 
+            // 鼠标轨迹效果
+            if (isMouseDown || (Math.abs(mouseX - lastMouseX) > 5 || Math.abs(mouseY - lastMouseY) > 5)) {
+                if (mouseTrail.length < 20) {
+                    mouseTrail.push(new MouseTrail(mouseX, mouseY));
+                }
+                lastMouseX = mouseX;
+                lastMouseY = mouseY;
+            }
+
+            mouseTrail = mouseTrail.filter(trail => {
+                const alive = trail.update();
+                if (alive) trail.draw();
+                return alive;
+            });
+
+            // 爆炸效果
+            explosions = explosions.filter(explosion => {
+                const alive = explosion.update();
+                if (alive) explosion.draw();
+                return alive;
+            });
+
             particles.forEach(p => {
                 p.update();
             });
@@ -480,6 +609,19 @@
             handleAutoPlayChange();
         }
 
+        function setupEffectMode() {
+            const effectModeOptions = document.querySelectorAll('input[name="effectMode"]');
+            
+            function handleEffectModeChange() {
+                const selectedOption = document.querySelector('input[name="effectMode"]:checked').value;
+                effectMode = parseInt(selectedOption);
+            }
+            
+            effectModeOptions.forEach(option => {
+                option.addEventListener('change', handleEffectModeChange);
+            });
+        }
+
         window.addEventListener('resize', () => {
             resize();
             init();
@@ -490,8 +632,20 @@
             mouseY = e.clientY;
         });
 
+        canvas.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            isMouseDown = false;
+        });
+
         canvas.addEventListener('click', (e) => {
             clickRings.push(new ClickRing(e.clientX, e.clientY));
+        });
+
+        canvas.addEventListener('dblclick', (e) => {
+            explosions.push(new Explosion(e.clientX, e.clientY));
         });
 
         canvas.addEventListener('touchmove', (e) => {
@@ -513,6 +667,7 @@
 
         init();
         setupAutoPlay();
+        setupEffectMode();
         animate();
     </script>
 </body>
