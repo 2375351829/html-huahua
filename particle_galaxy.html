@@ -117,9 +117,9 @@
         let frameCount = 0;
         let fps = 60;
 
-        const PARTICLE_COUNT = 800;
-        const CONNECTION_DISTANCE = 120;
-        const MOUSE_INFLUENCE = 150;
+        const PARTICLE_COUNT = 300;
+        const CONNECTION_DISTANCE = 80;
+        const MOUSE_INFLUENCE = 120;
 
         function resize() {
             width = canvas.width = window.innerWidth;
@@ -155,25 +155,28 @@
                 
                 const dx = centerX - this.x;
                 const dy = centerY - this.y;
-                const distToCenter = Math.sqrt(dx * dx + dy * dy);
+                const distSquared = dx * dx + dy * dy;
                 
-                if (distToCenter > 0) {
-                    this.vx += (dx / distToCenter) * 0.002;
-                    this.vy += (dy / distToCenter) * 0.002;
+                if (distSquared > 0) {
+                    const dist = Math.sqrt(distSquared);
+                    this.vx += (dx / dist) * 0.001;
+                    this.vy += (dy / dist) * 0.001;
                 }
 
                 const mdx = mouseX - this.x;
                 const mdy = mouseY - this.y;
-                const distToMouse = Math.sqrt(mdx * mdx + mdy * mdy);
+                const mouseDistSquared = mdx * mdx + mdy * mdy;
+                const maxMouseDistSquared = MOUSE_INFLUENCE * MOUSE_INFLUENCE;
                 
-                if (distToMouse < MOUSE_INFLUENCE && distToMouse > 0) {
-                    const force = (MOUSE_INFLUENCE - distToMouse) / MOUSE_INFLUENCE * 0.5;
-                    this.vx += (mdx / distToMouse) * force;
-                    this.vy += (mdy / distToMouse) * force;
+                if (mouseDistSquared < maxMouseDistSquared && mouseDistSquared > 0) {
+                    const dist = Math.sqrt(mouseDistSquared);
+                    const force = (MOUSE_INFLUENCE - dist) / MOUSE_INFLUENCE * 0.3;
+                    this.vx += (mdx / dist) * force;
+                    this.vy += (mdy / dist) * force;
                 }
 
-                this.vx *= 0.99;
-                this.vy *= 0.99;
+                this.vx *= 0.98;
+                this.vy *= 0.98;
 
                 this.x += this.vx;
                 this.y += this.vy;
@@ -188,10 +191,7 @@
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
                 ctx.fillStyle = `hsla(${this.hue}, 100%, 70%, ${this.alpha})`;
-                ctx.shadowColor = `hsla(${this.hue}, 100%, 70%, 0.8)`;
-                ctx.shadowBlur = 10;
                 ctx.fill();
-                ctx.shadowBlur = 0;
             }
         }
 
@@ -203,25 +203,56 @@
         }
 
         function drawConnections() {
+            const gridSize = CONNECTION_DISTANCE;
+            const grid = new Map();
+            
             for (let i = 0; i < particles.length; i++) {
-                for (let j = i + 1; j < particles.length; j++) {
-                    const dx = particles[i].x - particles[j].x;
-                    const dy = particles[i].y - particles[j].y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    
-                    if (dist < CONNECTION_DISTANCE) {
-                        const alpha = (1 - dist / CONNECTION_DISTANCE) * 0.2;
-                        const hue = (particles[i].hue + particles[j].hue) / 2;
+                const p = particles[i];
+                const gridX = Math.floor(p.x / gridSize);
+                const gridY = Math.floor(p.y / gridSize);
+                const key = `${gridX},${gridY}`;
+                
+                if (!grid.has(key)) {
+                    grid.set(key, []);
+                }
+                grid.get(key).push(i);
+            }
+            
+            ctx.beginPath();
+            
+            for (let i = 0; i < particles.length; i++) {
+                const p1 = particles[i];
+                const gridX = Math.floor(p1.x / gridSize);
+                const gridY = Math.floor(p1.y / gridSize);
+                
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        const key = `${gridX + dx},${gridY + dy}`;
+                        const neighbors = grid.get(key);
                         
-                        ctx.beginPath();
-                        ctx.moveTo(particles[i].x, particles[i].y);
-                        ctx.lineTo(particles[j].x, particles[j].y);
-                        ctx.strokeStyle = `hsla(${hue}, 100%, 70%, ${alpha})`;
-                        ctx.lineWidth = 1;
-                        ctx.stroke();
+                        if (neighbors) {
+                            for (const j of neighbors) {
+                                if (j > i) {
+                                    const p2 = particles[j];
+                                    const dx = p1.x - p2.x;
+                                    const dy = p1.y - p2.y;
+                                    const distSquared = dx * dx + dy * dy;
+                                    const maxDistSquared = CONNECTION_DISTANCE * CONNECTION_DISTANCE;
+                                    
+                                    if (distSquared < maxDistSquared) {
+                                        ctx.moveTo(p1.x, p1.y);
+                                        ctx.lineTo(p2.x, p2.y);
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
+            
+            ctx.strokeStyle = 'hsla(210, 100%, 70%, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
         }
 
         function animate() {
