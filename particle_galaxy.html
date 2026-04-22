@@ -112,12 +112,16 @@
 
         let width, height;
         let particles = [];
+        let stars = [];
         let mouseX = 0, mouseY = 0;
         let lastTime = performance.now();
         let frameCount = 0;
         let fps = 60;
+        let time = 0;
+        let clickRings = [];
 
         const PARTICLE_COUNT = 300;
+        const STAR_COUNT = 100;
         const CONNECTION_DISTANCE = 80;
         const MOUSE_INFLUENCE = 120;
 
@@ -145,8 +149,11 @@
                 this.vy = Math.cos(angle) * speed;
                 
                 this.radius = 1 + Math.random() * 2;
-                this.hue = 180 + Math.random() * 60;
+                this.baseHue = 150 + Math.random() * 120;
+                this.hue = this.baseHue;
                 this.alpha = 0.5 + Math.random() * 0.5;
+                this.pulseSpeed = 0.02 + Math.random() * 0.03;
+                this.pulseOffset = Math.random() * Math.PI * 2;
             }
 
             update() {
@@ -181,6 +188,9 @@
                 this.x += this.vx;
                 this.y += this.vy;
 
+                this.hue = this.baseHue + Math.sin(time * this.pulseSpeed + this.pulseOffset) * 30;
+                this.currentRadius = this.radius + Math.sin(time * this.pulseSpeed * 2 + this.pulseOffset) * 0.5;
+
                 if (this.x < -50 || this.x > width + 50 || 
                     this.y < -50 || this.y > height + 50) {
                     this.reset();
@@ -189,9 +199,63 @@
 
             draw() {
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.arc(this.x, this.y, this.currentRadius, 0, Math.PI * 2);
                 ctx.fillStyle = `hsla(${this.hue}, 100%, 70%, ${this.alpha})`;
                 ctx.fill();
+                
+                if (Math.random() < 0.02) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.currentRadius * 2, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(${this.hue}, 100%, 70%, 0.2)`;
+                    ctx.fill();
+                }
+            }
+        }
+
+        class Star {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.radius = Math.random() * 1.5;
+                this.alpha = Math.random() * 0.8 + 0.2;
+                this.twinkleSpeed = 0.01 + Math.random() * 0.03;
+                this.twinkleOffset = Math.random() * Math.PI * 2;
+            }
+
+            update() {
+                this.currentAlpha = this.alpha + Math.sin(time * this.twinkleSpeed + this.twinkleOffset) * 0.3;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(0, 0%, 100%, ${Math.max(0, this.currentAlpha)})`;
+                ctx.fill();
+            }
+        }
+
+        class ClickRing {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 10;
+                this.maxRadius = 150;
+                this.alpha = 1;
+                this.hue = Math.random() * 360;
+            }
+
+            update() {
+                this.radius += 3;
+                this.alpha -= 0.02;
+                return this.alpha > 0;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.strokeStyle = `hsla(${this.hue}, 100%, 70%, ${this.alpha})`;
+                ctx.lineWidth = 3;
+                ctx.stroke();
             }
         }
 
@@ -199,6 +263,9 @@
             resize();
             for (let i = 0; i < PARTICLE_COUNT; i++) {
                 particles.push(new Particle());
+            }
+            for (let i = 0; i < STAR_COUNT; i++) {
+                stars.push(new Star());
             }
         }
 
@@ -250,14 +317,47 @@
                 }
             }
             
-            ctx.strokeStyle = 'hsla(210, 100%, 70%, 0.2)';
+            const hue = (time * 0.5) % 360;
+            ctx.strokeStyle = `hsla(${hue}, 100%, 70%, 0.2)`;
             ctx.lineWidth = 1;
             ctx.stroke();
         }
 
+        function drawBackgroundNebula() {
+            const centerX = width / 2;
+            const centerY = height / 2;
+            
+            for (let i = 0; i < 3; i++) {
+                const radius = Math.min(width, height) * (0.2 + i * 0.15);
+                const hue = (time * 0.2 + i * 60) % 360;
+                
+                const gradient = ctx.createRadialGradient(
+                    centerX, centerY, 0,
+                    centerX, centerY, radius
+                );
+                gradient.addColorStop(0, `hsla(${hue}, 70%, 50%, 0.1)`);
+                gradient.addColorStop(0.5, `hsla(${hue + 30}, 70%, 50%, 0.05)`);
+                gradient.addColorStop(1, 'transparent');
+                
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.fillStyle = gradient;
+                ctx.fill();
+            }
+        }
+
         function animate() {
+            time++;
+            
             ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
             ctx.fillRect(0, 0, width, height);
+
+            drawBackgroundNebula();
+
+            stars.forEach(s => {
+                s.update();
+                s.draw();
+            });
 
             particles.forEach(p => {
                 p.update();
@@ -267,6 +367,12 @@
 
             particles.forEach(p => {
                 p.draw();
+            });
+
+            clickRings = clickRings.filter(ring => {
+                const alive = ring.update();
+                if (alive) ring.draw();
+                return alive;
             });
 
             frameCount++;
@@ -287,6 +393,10 @@
         canvas.addEventListener('mousemove', (e) => {
             mouseX = e.clientX;
             mouseY = e.clientY;
+        });
+
+        canvas.addEventListener('click', (e) => {
+            clickRings.push(new ClickRing(e.clientX, e.clientY));
         });
 
         canvas.addEventListener('touchmove', (e) => {
