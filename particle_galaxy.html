@@ -73,6 +73,31 @@
             background: rgba(0, 255, 255, 0.4);
             box-shadow: 0 0 20px #0ff;
         }
+
+        .auto-play-options {
+            position: absolute;
+            top: 60px;
+            left: 20px;
+            font-size: 14px;
+            color: #0ff;
+            text-shadow: 0 0 10px #0ff;
+            z-index: 15;
+            pointer-events: auto;
+        }
+
+        .auto-play-options div {
+            margin-bottom: 10px;
+        }
+
+        .auto-play-options label {
+            display: block;
+            margin-bottom: 5px;
+            cursor: pointer;
+        }
+
+        .auto-play-options input[type="radio"] {
+            margin-right: 5px;
+        }
     </style>
 </head>
 <body>
@@ -86,14 +111,14 @@
     <div id="title" class="ui-overlay">粒子银河 · Code is Poetry</div>
     <div id="author" class="ui-overlay">2023级软件工程X班 · 姓名</div>
     
-    <div class="auto-play-options ui-overlay" style="top: 60px; left: 20px; font-size: 14px;">
-        <div style="margin-bottom: 10px;">自动播放选项:</div>
-        <label><input type="radio" name="autoPlay" value="muted" checked> 静音自动播放</label><br>
-        <label><input type="radio" name="autoPlay" value="interactive"> 交互后播放</label><br>
+    <button id="music-btn">▶ 播放音乐</button>
+    
+    <div class="auto-play-options">
+        <div>自动播放选项:</div>
+        <label><input type="radio" name="autoPlay" value="muted" checked> 静音自动播放</label>
+        <label><input type="radio" name="autoPlay" value="interactive"> 交互后播放</label>
         <label><input type="radio" name="autoPlay" value="manual"> 手动播放</label>
     </div>
-    
-    <button id="music-btn">▶ 播放音乐</button>
     
     <audio id="bgm" loop muted>
         <source src="bgm.mp3" type="audio/mpeg">
@@ -127,10 +152,10 @@
         let time = 0;
         let clickRings = [];
 
-        const PARTICLE_COUNT = 300;
-        const STAR_COUNT = 100;
-        const CONNECTION_DISTANCE = 80;
-        const MOUSE_INFLUENCE = 120;
+        const PARTICLE_COUNT = 250;
+        const STAR_COUNT = 150;
+        const CONNECTION_DISTANCE = 100;
+        const MOUSE_INFLUENCE = 150;
 
         function resize() {
             width = canvas.width = window.innerWidth;
@@ -151,16 +176,18 @@
                 this.x = centerX + Math.cos(angle) * radius;
                 this.y = centerY + Math.sin(angle) * radius;
                 
-                const speed = 0.5 + Math.random() * 1.5;
+                const speed = 0.3 + Math.random() * 0.8;
                 this.vx = -Math.sin(angle) * speed;
                 this.vy = Math.cos(angle) * speed;
                 
-                this.radius = 1 + Math.random() * 2;
-                this.baseHue = 150 + Math.random() * 120;
+                this.radius = 1 + Math.random() * 1.5;
+                this.baseHue = 180 + Math.random() * 90;
                 this.hue = this.baseHue;
-                this.alpha = 0.5 + Math.random() * 0.5;
-                this.pulseSpeed = 0.02 + Math.random() * 0.03;
+                this.alpha = 0.6 + Math.random() * 0.4;
+                this.pulseSpeed = 0.02 + Math.random() * 0.02;
                 this.pulseOffset = Math.random() * Math.PI * 2;
+                this.rotationSpeed = 0.01 + Math.random() * 0.01;
+                this.rotation = Math.random() * Math.PI * 2;
             }
 
             update() {
@@ -173,8 +200,8 @@
                 
                 if (distSquared > 0) {
                     const dist = Math.sqrt(distSquared);
-                    this.vx += (dx / dist) * 0.001;
-                    this.vy += (dy / dist) * 0.001;
+                    this.vx += (dx / dist) * 0.0008;
+                    this.vy += (dy / dist) * 0.0008;
                 }
 
                 const mdx = mouseX - this.x;
@@ -184,19 +211,20 @@
                 
                 if (mouseDistSquared < maxMouseDistSquared && mouseDistSquared > 0) {
                     const dist = Math.sqrt(mouseDistSquared);
-                    const force = (MOUSE_INFLUENCE - dist) / MOUSE_INFLUENCE * 0.3;
+                    const force = (MOUSE_INFLUENCE - dist) / MOUSE_INFLUENCE * 0.25;
                     this.vx += (mdx / dist) * force;
                     this.vy += (mdy / dist) * force;
                 }
 
-                this.vx *= 0.98;
-                this.vy *= 0.98;
+                this.vx *= 0.985;
+                this.vy *= 0.985;
 
                 this.x += this.vx;
                 this.y += this.vy;
 
-                this.hue = this.baseHue + Math.sin(time * this.pulseSpeed + this.pulseOffset) * 30;
-                this.currentRadius = this.radius + Math.sin(time * this.pulseSpeed * 2 + this.pulseOffset) * 0.5;
+                this.rotation += this.rotationSpeed;
+                this.hue = this.baseHue + Math.sin(time * this.pulseSpeed + this.pulseOffset) * 40;
+                this.currentRadius = this.radius + Math.sin(time * this.pulseSpeed * 2 + this.pulseOffset) * 0.8;
 
                 if (this.x < -50 || this.x > width + 50 || 
                     this.y < -50 || this.y > height + 50) {
@@ -205,38 +233,49 @@
             }
 
             draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, this.currentRadius, 0, Math.PI * 2);
+                ctx.arc(0, 0, this.currentRadius, 0, Math.PI * 2);
                 ctx.fillStyle = `hsla(${this.hue}, 100%, 70%, ${this.alpha})`;
                 ctx.fill();
                 
-                if (Math.random() < 0.02) {
+                if (Math.random() < 0.03) {
                     ctx.beginPath();
-                    ctx.arc(this.x, this.y, this.currentRadius * 2, 0, Math.PI * 2);
-                    ctx.fillStyle = `hsla(${this.hue}, 100%, 70%, 0.2)`;
+                    ctx.arc(0, 0, this.currentRadius * 2.5, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(${this.hue}, 100%, 70%, 0.15)`;
                     ctx.fill();
                 }
+                
+                ctx.restore();
             }
         }
 
         class Star {
             constructor() {
+                this.reset();
+            }
+
+            reset() {
                 this.x = Math.random() * width;
                 this.y = Math.random() * height;
-                this.radius = Math.random() * 1.5;
-                this.alpha = Math.random() * 0.8 + 0.2;
-                this.twinkleSpeed = 0.01 + Math.random() * 0.03;
+                this.radius = Math.random() * 1.2;
+                this.alpha = Math.random() * 0.7 + 0.3;
+                this.twinkleSpeed = 0.01 + Math.random() * 0.02;
                 this.twinkleOffset = Math.random() * Math.PI * 2;
+                this.depth = Math.random() * 3;
             }
 
             update() {
-                this.currentAlpha = this.alpha + Math.sin(time * this.twinkleSpeed + this.twinkleOffset) * 0.3;
+                this.currentAlpha = this.alpha + Math.sin(time * this.twinkleSpeed + this.twinkleOffset) * 0.4;
             }
 
             draw() {
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fillStyle = `hsla(0, 0%, 100%, ${Math.max(0, this.currentAlpha)})`;
+                ctx.arc(this.x, this.y, this.radius * this.depth, 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(0, 0%, ${80 + this.depth * 10}%, ${Math.max(0, this.currentAlpha)})`;
                 ctx.fill();
             }
         }
@@ -245,29 +284,34 @@
             constructor(x, y) {
                 this.x = x;
                 this.y = y;
-                this.radius = 10;
-                this.maxRadius = 150;
+                this.radius = 5;
+                this.maxRadius = 200;
                 this.alpha = 1;
-                this.hue = Math.random() * 360;
+                this.hue = 180 + Math.random() * 90;
+                this.speed = 4 + Math.random() * 2;
+                this.width = 4;
             }
 
             update() {
-                this.radius += 3;
-                this.alpha -= 0.02;
-                return this.alpha > 0;
+                this.radius += this.speed;
+                this.alpha -= 0.015;
+                this.width = Math.max(1, this.width - 0.05);
+                return this.alpha > 0 && this.radius < this.maxRadius;
             }
 
             draw() {
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
                 ctx.strokeStyle = `hsla(${this.hue}, 100%, 70%, ${this.alpha})`;
-                ctx.lineWidth = 3;
+                ctx.lineWidth = this.width;
                 ctx.stroke();
             }
         }
 
         function init() {
             resize();
+            particles = [];
+            stars = [];
             for (let i = 0; i < PARTICLE_COUNT; i++) {
                 particles.push(new Particle());
             }
@@ -314,6 +358,7 @@
                                     const maxDistSquared = CONNECTION_DISTANCE * CONNECTION_DISTANCE;
                                     
                                     if (distSquared < maxDistSquared) {
+                                        const alpha = (1 - Math.sqrt(distSquared) / CONNECTION_DISTANCE) * 0.15;
                                         ctx.moveTo(p1.x, p1.y);
                                         ctx.lineTo(p2.x, p2.y);
                                     }
@@ -324,7 +369,7 @@
                 }
             }
             
-            const hue = (time * 0.5) % 360;
+            const hue = (time * 0.3) % 360;
             ctx.strokeStyle = `hsla(${hue}, 100%, 70%, 0.2)`;
             ctx.lineWidth = 1;
             ctx.stroke();
@@ -335,15 +380,15 @@
             const centerY = height / 2;
             
             for (let i = 0; i < 3; i++) {
-                const radius = Math.min(width, height) * (0.2 + i * 0.15);
-                const hue = (time * 0.2 + i * 60) % 360;
+                const radius = Math.min(width, height) * (0.2 + i * 0.18);
+                const hue = (time * 0.15 + i * 60) % 360;
                 
                 const gradient = ctx.createRadialGradient(
                     centerX, centerY, 0,
                     centerX, centerY, radius
                 );
-                gradient.addColorStop(0, `hsla(${hue}, 70%, 50%, 0.1)`);
-                gradient.addColorStop(0.5, `hsla(${hue + 30}, 70%, 50%, 0.05)`);
+                gradient.addColorStop(0, `hsla(${hue}, 70%, 50%, 0.12)`);
+                gradient.addColorStop(0.5, `hsla(${hue + 30}, 70%, 50%, 0.06)`);
                 gradient.addColorStop(1, 'transparent');
                 
                 ctx.beginPath();
@@ -356,7 +401,7 @@
         function animate() {
             time++;
             
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
             ctx.fillRect(0, 0, width, height);
 
             drawBackgroundNebula();
@@ -395,23 +440,6 @@
             requestAnimationFrame(animate);
         }
 
-        window.addEventListener('resize', resize);
-        
-        canvas.addEventListener('mousemove', (e) => {
-            mouseX = e.clientX;
-            mouseY = e.clientY;
-        });
-
-        canvas.addEventListener('click', (e) => {
-            clickRings.push(new ClickRing(e.clientX, e.clientY));
-        });
-
-        canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            mouseX = e.touches[0].clientX;
-            mouseY = e.touches[0].clientY;
-        });
-
         function setupAutoPlay() {
             const autoPlayOptions = document.querySelectorAll('input[name="autoPlay"]');
             
@@ -449,9 +477,28 @@
                 option.addEventListener('change', handleAutoPlayChange);
             });
             
-            // Initial setup
             handleAutoPlayChange();
         }
+
+        window.addEventListener('resize', () => {
+            resize();
+            init();
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        canvas.addEventListener('click', (e) => {
+            clickRings.push(new ClickRing(e.clientX, e.clientY));
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            mouseX = e.touches[0].clientX;
+            mouseY = e.touches[0].clientY;
+        });
 
         musicBtn.addEventListener('click', () => {
             if (bgm.paused) {
@@ -464,9 +511,8 @@
             }
         });
 
-        setupAutoPlay();
-
         init();
+        setupAutoPlay();
         animate();
     </script>
 </body>
