@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>粒子银河 · Code is Poetry</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+        }
+
+        #canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .ui-overlay {
+            position: absolute;
+            color: #0ff;
+            pointer-events: none;
+            text-shadow: 0 0 10px #0ff;
+            z-index: 10;
+        }
+
+        #stats {
+            top: 20px;
+            right: 20px;
+            text-align: right;
+            font-size: 16px;
+        }
+
+        #title {
+            bottom: 20px;
+            left: 20px;
+            font-size: 20px;
+        }
+
+        #author {
+            bottom: 50px;
+            left: 20px;
+            font-size: 14px;
+            color: #0f0;
+            text-shadow: 0 0 10px #0f0;
+        }
+
+        #music-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: rgba(0, 255, 255, 0.2);
+            border: 2px solid #0ff;
+            color: #0ff;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            cursor: pointer;
+            text-shadow: 0 0 10px #0ff;
+            z-index: 20;
+            transition: all 0.3s;
+        }
+
+        #music-btn:hover {
+            background: rgba(0, 255, 255, 0.4);
+            box-shadow: 0 0 20px #0ff;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div id="stats" class="ui-overlay">
+        <div id="fps">FPS: 60</div>
+        <div id="particles">Particles: 0</div>
+    </div>
+    
+    <div id="title" class="ui-overlay">粒子银河 · Code is Poetry</div>
+    <div id="author" class="ui-overlay">2023级软件工程X班 · 姓名</div>
+    
+    <button id="music-btn">▶ 播放音乐</button>
+    
+    <audio id="bgm" loop>
+        <source src="bgm.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        /*
+         * Project: Particle Galaxy · Code is Poetry
+         * Author: 2023级软件工程X班 · 姓名
+         * Tech Stack: HTML5 Canvas, Vanilla JavaScript
+         * Theme: 智创青春 · 艺启未来
+         * 
+         * "在代码的星河里，每一行都是一首诗；
+         *  每一个粒子，都是我们跳动的思维。"
+         */
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const fpsEl = document.getElementById('fps');
+        const particlesEl = document.getElementById('particles');
+        const musicBtn = document.getElementById('music-btn');
+        const bgm = document.getElementById('bgm');
+
+        let width, height;
+        let particles = [];
+        let mouseX = 0, mouseY = 0;
+        let lastTime = performance.now();
+        let frameCount = 0;
+        let fps = 60;
+
+        const PARTICLE_COUNT = 800;
+        const CONNECTION_DISTANCE = 120;
+        const MOUSE_INFLUENCE = 150;
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                const centerX = width / 2;
+                const centerY = height / 2;
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * Math.min(width, height) * 0.4;
+                
+                this.x = centerX + Math.cos(angle) * radius;
+                this.y = centerY + Math.sin(angle) * radius;
+                
+                const speed = 0.5 + Math.random() * 1.5;
+                this.vx = -Math.sin(angle) * speed;
+                this.vy = Math.cos(angle) * speed;
+                
+                this.radius = 1 + Math.random() * 2;
+                this.hue = 180 + Math.random() * 60;
+                this.alpha = 0.5 + Math.random() * 0.5;
+            }
+
+            update() {
+                const centerX = width / 2;
+                const centerY = height / 2;
+                
+                const dx = centerX - this.x;
+                const dy = centerY - this.y;
+                const distToCenter = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distToCenter > 0) {
+                    this.vx += (dx / distToCenter) * 0.002;
+                    this.vy += (dy / distToCenter) * 0.002;
+                }
+
+                const mdx = mouseX - this.x;
+                const mdy = mouseY - this.y;
+                const distToMouse = Math.sqrt(mdx * mdx + mdy * mdy);
+                
+                if (distToMouse < MOUSE_INFLUENCE && distToMouse > 0) {
+                    const force = (MOUSE_INFLUENCE - distToMouse) / MOUSE_INFLUENCE * 0.5;
+                    this.vx += (mdx / distToMouse) * force;
+                    this.vy += (mdy / distToMouse) * force;
+                }
+
+                this.vx *= 0.99;
+                this.vy *= 0.99;
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                if (this.x < -50 || this.x > width + 50 || 
+                    this.y < -50 || this.y > height + 50) {
+                    this.reset();
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(${this.hue}, 100%, 70%, ${this.alpha})`;
+                ctx.shadowColor = `hsla(${this.hue}, 100%, 70%, 0.8)`;
+                ctx.shadowBlur = 10;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        function init() {
+            resize();
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function drawConnections() {
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < CONNECTION_DISTANCE) {
+                        const alpha = (1 - dist / CONNECTION_DISTANCE) * 0.2;
+                        const hue = (particles[i].hue + particles[j].hue) / 2;
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.strokeStyle = `hsla(${hue}, 100%, 70%, ${alpha})`;
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, width, height);
+
+            particles.forEach(p => {
+                p.update();
+            });
+
+            drawConnections();
+
+            particles.forEach(p => {
+                p.draw();
+            });
+
+            frameCount++;
+            const currentTime = performance.now();
+            if (currentTime - lastTime >= 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastTime = currentTime;
+                fpsEl.textContent = `FPS: ${fps}`;
+                particlesEl.textContent = `Particles: ${particles.length}`;
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', resize);
+        
+        canvas.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            mouseX = e.touches[0].clientX;
+            mouseY = e.touches[0].clientY;
+        });
+
+        musicBtn.addEventListener('click', () => {
+            if (bgm.paused) {
+                bgm.play();
+                musicBtn.textContent = '⏸ 暂停音乐';
+            } else {
+                bgm.pause();
+                musicBtn.textContent = '▶ 播放音乐';
+            }
+        });
+
+        init();
+        animate();
+    </script>
+</body>
+</html>
