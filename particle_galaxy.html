@@ -86,9 +86,16 @@
     <div id="title" class="ui-overlay">粒子银河 · Code is Poetry</div>
     <div id="author" class="ui-overlay">2023级软件工程X班 · 姓名</div>
     
+    <div class="auto-play-options ui-overlay" style="top: 60px; left: 20px; font-size: 14px;">
+        <div style="margin-bottom: 10px;">自动播放选项:</div>
+        <label><input type="radio" name="autoPlay" value="muted" checked> 静音自动播放</label><br>
+        <label><input type="radio" name="autoPlay" value="interactive"> 交互后播放</label><br>
+        <label><input type="radio" name="autoPlay" value="manual"> 手动播放</label>
+    </div>
+    
     <button id="music-btn">▶ 播放音乐</button>
     
-    <audio id="bgm" loop>
+    <audio id="bgm" loop muted>
         <source src="bgm.mp3" type="audio/mpeg">
     </audio>
 
@@ -405,15 +412,59 @@
             mouseY = e.touches[0].clientY;
         });
 
+        function setupAutoPlay() {
+            const autoPlayOptions = document.querySelectorAll('input[name="autoPlay"]');
+            
+            function handleAutoPlayChange() {
+                const selectedOption = document.querySelector('input[name="autoPlay"]:checked').value;
+                
+                switch(selectedOption) {
+                    case 'muted':
+                        bgm.muted = true;
+                        bgm.play().catch(e => console.log('Muted auto play attempt:', e));
+                        musicBtn.textContent = '🔊 取消静音';
+                        break;
+                    case 'interactive':
+                        bgm.muted = false;
+                        bgm.pause();
+                        musicBtn.textContent = '▶ 播放音乐';
+                        function playOnInteraction() {
+                            bgm.play().catch(e => console.log('Interactive play attempt:', e));
+                            musicBtn.textContent = '⏸ 暂停音乐';
+                            document.removeEventListener('click', playOnInteraction);
+                            document.removeEventListener('keydown', playOnInteraction);
+                        }
+                        document.addEventListener('click', playOnInteraction);
+                        document.addEventListener('keydown', playOnInteraction);
+                        break;
+                    case 'manual':
+                        bgm.muted = false;
+                        bgm.pause();
+                        musicBtn.textContent = '▶ 播放音乐';
+                        break;
+                }
+            }
+            
+            autoPlayOptions.forEach(option => {
+                option.addEventListener('change', handleAutoPlayChange);
+            });
+            
+            // Initial setup
+            handleAutoPlayChange();
+        }
+
         musicBtn.addEventListener('click', () => {
             if (bgm.paused) {
-                bgm.play();
+                bgm.play().catch(e => console.log('Play attempt:', e));
                 musicBtn.textContent = '⏸ 暂停音乐';
+                bgm.muted = false;
             } else {
                 bgm.pause();
                 musicBtn.textContent = '▶ 播放音乐';
             }
         });
+
+        setupAutoPlay();
 
         init();
         animate();
