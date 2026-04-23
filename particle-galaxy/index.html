@@ -19,29 +19,31 @@
     
     <button id="music-btn">▶ 播放音乐</button>
     
-    <div class="auto-play-options">
-        <div>自动播放选项:</div>
-        <label><input type="radio" name="autoPlay" value="muted" checked> 静音自动播放</label>
-        <label><input type="radio" name="autoPlay" value="interactive"> 交互后播放</label>
-        <label><input type="radio" name="autoPlay" value="manual"> 手动播放</label>
-    </div>
-    
-    <div class="effect-mode-options">
-        <div>效果模式:</div>
-        <label><input type="radio" name="effectMode" value="0" checked> 普通模式</label>
-        <label><input type="radio" name="effectMode" value="1"> 轨迹模式</label>
-        <label><input type="radio" name="effectMode" value="2"> 爆炸模式</label>
-        <label><input type="radio" name="effectMode" value="3"> 波浪模式</label>
-    </div>
-    
-    <div class="shape-mode-options">
-        <div>形状模式:</div>
-        <label><input type="radio" name="shapeMode" value="0" checked> 银河</label>
-        <label><input type="radio" name="shapeMode" value="1"> 地球</label>
-        <label><input type="radio" name="shapeMode" value="2"> 星环</label>
-        <label><input type="radio" name="shapeMode" value="3"> 大树</label>
-        <label><input type="radio" name="shapeMode" value="4"> 河流</label>
-        <label><input type="radio" name="shapeMode" value="5"> 流星雨</label>
+    <div class="options-panel">
+        <div class="auto-play-options">
+            <h3>自动播放选项</h3>
+            <label><input type="radio" name="autoPlay" value="muted" checked> 静音自动播放</label>
+            <label><input type="radio" name="autoPlay" value="interactive"> 交互后播放</label>
+            <label><input type="radio" name="autoPlay" value="manual"> 手动播放</label>
+        </div>
+        
+        <div class="effect-mode-options">
+            <h3>效果模式</h3>
+            <label><input type="radio" name="effectMode" value="0" checked> 普通模式</label>
+            <label><input type="radio" name="effectMode" value="1"> 轨迹模式</label>
+            <label><input type="radio" name="effectMode" value="2"> 爆炸模式</label>
+            <label><input type="radio" name="effectMode" value="3"> 波浪模式</label>
+        </div>
+        
+        <div class="shape-mode-options">
+            <h3>形状模式</h3>
+            <label><input type="radio" name="shapeMode" value="0" checked> 银河</label>
+            <label><input type="radio" name="shapeMode" value="1"> 地球</label>
+            <label><input type="radio" name="shapeMode" value="2"> 星环</label>
+            <label><input type="radio" name="shapeMode" value="3"> 大树</label>
+            <label><input type="radio" name="shapeMode" value="4"> 河流</label>
+            <label><input type="radio" name="shapeMode" value="5"> 流星雨</label>
+        </div>
     </div>
     
     <audio id="bgm" loop muted>
