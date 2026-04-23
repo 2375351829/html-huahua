@@ -827,65 +827,69 @@
 
         // 创建合成器
         function createSynth() {
-            // 主音量控制
-            const masterGain = audioContext.createGain();
-            masterGain.gain.value = volume;
-            masterGain.connect(analyser);
-            analyser.connect(audioContext.destination);
-            
-            // 低频贝斯
-            const bassOsc = audioContext.createOscillator();
-            const bassGain = audioContext.createGain();
-            
-            bassOsc.type = 'sawtooth';
-            bassOsc.frequency.value = 60;
-            
-            bassGain.gain.value = 0;
-            
-            bassOsc.connect(bassGain);
-            bassGain.connect(masterGain);
-            
-            // 高频镲音
-            const hihatOsc = audioContext.createOscillator();
-            const hihatGain = audioContext.createGain();
-            
-            hihatOsc.type = 'square';
-            hihatOsc.frequency.value = 8000;
-            
-            hihatGain.gain.value = 0;
-            
-            hihatOsc.connect(hihatGain);
-            hihatGain.connect(masterGain);
-            
-            // 启动振荡器
-            bassOsc.start();
-            hihatOsc.start();
-            
-            // 存储音频源
-            audioSources = [bassOsc, hihatOsc, bassGain, hihatGain, masterGain];
-            
-            // 创建节拍
-            let time = audioContext.currentTime;
-            const interval = 60 / bpm;
-            
-            function playBeat() {
-                if (!isAudioPlaying) return;
+            try {
+                // 主音量控制
+                const masterGain = audioContext.createGain();
+                masterGain.gain.value = volume;
+                masterGain.connect(analyser);
+                analyser.connect(audioContext.destination);
                 
-                // 贝斯
-                bassGain.gain.setValueAtTime(0.3, time);
-                bassGain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+                // 低频贝斯
+                const bassOsc = audioContext.createOscillator();
+                const bassGain = audioContext.createGain();
                 
-                // 镲音
-                if (Math.floor(time / interval) % 2 === 0) {
-                    hihatGain.gain.setValueAtTime(0.1, time);
-                    hihatGain.gain.exponentialRampToValueAtTime(0.01, time + 0.05);
+                bassOsc.type = 'sawtooth';
+                bassOsc.frequency.value = 60;
+                
+                bassGain.gain.value = 0;
+                
+                bassOsc.connect(bassGain);
+                bassGain.connect(masterGain);
+                
+                // 高频镲音
+                const hihatOsc = audioContext.createOscillator();
+                const hihatGain = audioContext.createGain();
+                
+                hihatOsc.type = 'square';
+                hihatOsc.frequency.value = 8000;
+                
+                hihatGain.gain.value = 0;
+                
+                hihatOsc.connect(hihatGain);
+                hihatGain.connect(masterGain);
+                
+                // 启动振荡器
+                bassOsc.start();
+                hihatOsc.start();
+                
+                // 存储音频源
+                audioSources = [bassOsc, hihatOsc, bassGain, hihatGain, masterGain];
+                
+                // 创建节拍
+                let time = audioContext.currentTime;
+                const interval = 60 / bpm;
+                
+                function playBeat() {
+                    if (!isAudioPlaying) return;
+                    
+                    // 贝斯
+                    bassGain.gain.setValueAtTime(0.3, time);
+                    bassGain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+                    
+                    // 镲音
+                    if (Math.floor(time / interval) % 2 === 0) {
+                        hihatGain.gain.setValueAtTime(0.1, time);
+                        hihatGain.gain.exponentialRampToValueAtTime(0.01, time + 0.05);
+                    }
+                    
+                    time += interval;
+                    setTimeout(playBeat, interval * 1000);
                 }
                 
-                time += interval;
-                setTimeout(playBeat, interval * 1000);
+                playBeat();
+            } catch (error) {
+                console.error('创建合成器失败:', error);
             }
-            
-            playBeat();
         }
 
         // 初始化控制面板
@@ -998,6 +1002,17 @@
                 isAudioPlaying = false;
                 playPauseBtn.textContent = '▶ 播放';
                 playPauseBtn.classList.remove('active');
+                // 停止所有音频源
+                audioSources.forEach(source => {
+                    if (source.stop) {
+                        try {
+                            source.stop();
+                        } catch (e) {
+                            // 忽略已停止的音频源
+                        }
+                    }
+                });
+                audioSources = [];
                 playClickSound();
             }
         }
@@ -1135,21 +1150,29 @@
             
             // 启动按钮
             const startBtn = document.getElementById('start-btn');
-            startBtn.addEventListener('click', () => {
-                if (audioContext.state === 'suspended') {
-                    audioContext.resume();
+            startBtn.addEventListener('click', async () => {
+                try {
+                    if (audioContext.state === 'suspended') {
+                        await audioContext.resume();
+                    }
+                    isAudioPlaying = true;
+                    startBtn.style.display = 'none';
+                    playClickSound();
+                } catch (error) {
+                    console.error('启动音频失败:', error);
                 }
-                isAudioPlaying = true;
-                startBtn.style.display = 'none';
-                playClickSound();
             });
             
             // 点击页面恢复音频
-            document.addEventListener('click', () => {
-                if (audioContext && audioContext.state === 'suspended') {
-                    audioContext.resume();
-                    isAudioPlaying = true;
-                    document.getElementById('start-btn').style.display = 'none';
+            document.addEventListener('click', async () => {
+                try {
+                    if (audioContext && audioContext.state === 'suspended') {
+                        await audioContext.resume();
+                        isAudioPlaying = true;
+                        document.getElementById('start-btn').style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error('恢复音频失败:', error);
                 }
             });
         }
@@ -1212,50 +1235,54 @@
                 
                 // 音频响应
                 if (isAudioPlaying && analyser) {
-                    analyser.getByteFrequencyData(dataArray);
-                    
-                    // 获取低频能量
-                    const lowFreqEnergy = dataArray.slice(0, 32).reduce((sum, value) => sum + value, 0) / 32;
-                    
-                    // 缩放粒子
-                    const scale = 1 + lowFreqEnergy / 255 * 0.3;
-                    particles.scale.set(scale, scale, scale);
-                    
-                    // 更新粒子颜色
-                    const colors = particles.geometry.attributes.color.array;
-                    for (let i = 0; i < colors.length; i += 3) {
-                        // 根据频率数据调整颜色
-                        const freqIndex = Math.floor((i / 3) % dataArray.length);
-                        const energy = dataArray[freqIndex] / 255;
+                    try {
+                        analyser.getByteFrequencyData(dataArray);
                         
-                        // 根据视觉模式调整颜色
-                        switch (currentVisualMode) {
-                            case 0: // 赛博狂欢
-                                colors[i] = 0.7 + energy * 0.3; // 紫色
-                                colors[i + 1] = energy * 0.5; // 粉色
-                                colors[i + 2] = 0.7 + energy * 0.3; // 蓝色
-                                break;
-                            case 1: // 脉冲矩阵
-                                colors[i] = energy * 0.8; // 蓝色
-                                colors[i + 1] = energy * 0.8; // 蓝色
-                                colors[i + 2] = 1; // 白色
-                                break;
-                            case 2: // 全息蓝调
-                                colors[i] = 0.5 + energy * 0.5; // 浅蓝色
-                                colors[i + 1] = 0.8 + energy * 0.2; // 白色
-                                colors[i + 2] = 1; // 蓝色
-                                break;
-                            case 3: // 故障增强
-                                colors[i] = Math.random() * 0.5 + 0.5; // 随机红色
-                                colors[i + 1] = Math.random() * 0.5; // 随机绿色
-                                colors[i + 2] = Math.random() * 0.5 + 0.5; // 随机蓝色
-                                break;
+                        // 获取低频能量
+                        const lowFreqEnergy = dataArray.slice(0, 32).reduce((sum, value) => sum + value, 0) / 32;
+                        
+                        // 缩放粒子
+                        const scale = 1 + lowFreqEnergy / 255 * 0.3;
+                        particles.scale.set(scale, scale, scale);
+                        
+                        // 更新粒子颜色
+                        const colors = particles.geometry.attributes.color.array;
+                        for (let i = 0; i < colors.length; i += 3) {
+                            // 根据频率数据调整颜色
+                            const freqIndex = Math.floor((i / 3) % dataArray.length);
+                            const energy = dataArray[freqIndex] / 255;
+                            
+                            // 根据视觉模式调整颜色
+                            switch (currentVisualMode) {
+                                case 0: // 赛博狂欢
+                                    colors[i] = 0.7 + energy * 0.3; // 紫色
+                                    colors[i + 1] = energy * 0.5; // 粉色
+                                    colors[i + 2] = 0.7 + energy * 0.3; // 蓝色
+                                    break;
+                                case 1: // 脉冲矩阵
+                                    colors[i] = energy * 0.8; // 蓝色
+                                    colors[i + 1] = energy * 0.8; // 蓝色
+                                    colors[i + 2] = 1; // 白色
+                                    break;
+                                case 2: // 全息蓝调
+                                    colors[i] = 0.5 + energy * 0.5; // 浅蓝色
+                                    colors[i + 1] = 0.8 + energy * 0.2; // 白色
+                                    colors[i + 2] = 1; // 蓝色
+                                    break;
+                                case 3: // 故障增强
+                                    colors[i] = Math.random() * 0.5 + 0.5; // 随机红色
+                                    colors[i + 1] = Math.random() * 0.5; // 随机绿色
+                                    colors[i + 2] = Math.random() * 0.5 + 0.5; // 随机蓝色
+                                    break;
+                            }
                         }
+                        particles.geometry.attributes.color.needsUpdate = true;
+                        
+                        // 更新频谱条
+                        updateSpectrumBar();
+                    } catch (error) {
+                        console.error('更新粒子失败:', error);
                     }
-                    particles.geometry.attributes.color.needsUpdate = true;
-                    
-                    // 更新频谱条
-                    updateSpectrumBar();
                 }
             }
         }
@@ -1274,57 +1301,61 @@
         // 绘制Canvas
         function drawCanvas() {
             if (ctx2d) {
-                ctx2d.clearRect(0, 0, canvas2d.width, canvas2d.height);
-                
-                // 绘制环形频谱
-                if (isAudioPlaying && analyser) {
-                    const centerX = canvas2d.width / 2;
-                    const centerY = canvas2d.height / 2;
-                    const radius = 100;
+                try {
+                    ctx2d.clearRect(0, 0, canvas2d.width, canvas2d.height);
                     
-                    ctx2d.save();
-                    ctx2d.translate(centerX, centerY);
-                    
-                    for (let i = 0; i < 64; i++) {
-                        const angle = (i / 64) * Math.PI * 2;
-                        const energy = dataArray[i] / 255;
-                        const barLength = energy * 50;
+                    // 绘制环形频谱
+                    if (isAudioPlaying && analyser && dataArray) {
+                        const centerX = canvas2d.width / 2;
+                        const centerY = canvas2d.height / 2;
+                        const radius = 100;
                         
-                        const x1 = Math.cos(angle) * radius;
-                        const y1 = Math.sin(angle) * radius;
-                        const x2 = Math.cos(angle) * (radius + barLength);
-                        const y2 = Math.sin(angle) * (radius + barLength);
+                        ctx2d.save();
+                        ctx2d.translate(centerX, centerY);
                         
-                        // 颜色渐变
-                        const gradient = ctx2d.createLinearGradient(x1, y1, x2, y2);
-                        switch (currentVisualMode) {
-                            case 0:
-                                gradient.addColorStop(0, '#c000ff');
-                                gradient.addColorStop(1, '#00f0ff');
-                                break;
-                            case 1:
-                                gradient.addColorStop(0, '#00f0ff');
-                                gradient.addColorStop(1, '#ffffff');
-                                break;
-                            case 2:
-                                gradient.addColorStop(0, '#00a0ff');
-                                gradient.addColorStop(1, '#ffffff');
-                                break;
-                            case 3:
-                                gradient.addColorStop(0, '#ff00a0');
-                                gradient.addColorStop(1, '#c000ff');
-                                break;
+                        for (let i = 0; i < 64; i++) {
+                            const angle = (i / 64) * Math.PI * 2;
+                            const energy = dataArray[i] / 255;
+                            const barLength = energy * 50;
+                            
+                            const x1 = Math.cos(angle) * radius;
+                            const y1 = Math.sin(angle) * radius;
+                            const x2 = Math.cos(angle) * (radius + barLength);
+                            const y2 = Math.sin(angle) * (radius + barLength);
+                            
+                            // 颜色渐变
+                            const gradient = ctx2d.createLinearGradient(x1, y1, x2, y2);
+                            switch (currentVisualMode) {
+                                case 0:
+                                    gradient.addColorStop(0, '#c000ff');
+                                    gradient.addColorStop(1, '#00f0ff');
+                                    break;
+                                case 1:
+                                    gradient.addColorStop(0, '#00f0ff');
+                                    gradient.addColorStop(1, '#ffffff');
+                                    break;
+                                case 2:
+                                    gradient.addColorStop(0, '#00a0ff');
+                                    gradient.addColorStop(1, '#ffffff');
+                                    break;
+                                case 3:
+                                    gradient.addColorStop(0, '#ff00a0');
+                                    gradient.addColorStop(1, '#c000ff');
+                                    break;
+                            }
+                            
+                            ctx2d.beginPath();
+                            ctx2d.moveTo(x1, y1);
+                            ctx2d.lineTo(x2, y2);
+                            ctx2d.lineWidth = 2;
+                            ctx2d.strokeStyle = gradient;
+                            ctx2d.stroke();
                         }
                         
-                        ctx2d.beginPath();
-                        ctx2d.moveTo(x1, y1);
-                        ctx2d.lineTo(x2, y2);
-                        ctx2d.lineWidth = 2;
-                        ctx2d.strokeStyle = gradient;
-                        ctx2d.stroke();
+                        ctx2d.restore();
                     }
-                    
-                    ctx2d.restore();
+                } catch (error) {
+                    console.error('绘制Canvas失败:', error);
                 }
             }
         }
@@ -1332,49 +1363,53 @@
         // 绘制数字雨
         function drawDigitalRain() {
             if (ctxRain) {
-                // 半透明背景
-                ctxRain.fillStyle = 'rgba(0, 0, 17, 0.1)';
-                ctxRain.fillRect(0, 0, digitalRainCanvas.width, digitalRainCanvas.height);
-                
-                // 数字雨字符
-                const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
-                
-                // 初始化雨滴
-                if (!window.rainDrops) {
-                    window.rainDrops = [];
-                    const columns = Math.floor(digitalRainCanvas.width / 20);
-                    for (let i = 0; i < columns; i++) {
-                        window.rainDrops.push({
-                            x: i * 20,
-                            y: Math.random() * digitalRainCanvas.height,
-                            speed: 1 + Math.random() * 3,
-                            charIndex: 0
-                        });
+                try {
+                    // 半透明背景
+                    ctxRain.fillStyle = 'rgba(0, 0, 17, 0.1)';
+                    ctxRain.fillRect(0, 0, digitalRainCanvas.width, digitalRainCanvas.height);
+                    
+                    // 数字雨字符
+                    const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+                    
+                    // 初始化雨滴
+                    if (!window.rainDrops) {
+                        window.rainDrops = [];
+                        const columns = Math.floor(digitalRainCanvas.width / 20);
+                        for (let i = 0; i < columns; i++) {
+                            window.rainDrops.push({
+                                x: i * 20,
+                                y: Math.random() * digitalRainCanvas.height,
+                                speed: 1 + Math.random() * 3,
+                                charIndex: 0
+                            });
+                        }
                     }
+                    
+                    // 绘制雨滴
+                    ctxRain.font = '16px monospace';
+                    window.rainDrops.forEach(drop => {
+                        // 随机颜色
+                        const colors = ['#c000ff', '#ff00a0', '#00f0ff', '#39ff14'];
+                        ctxRain.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+                        
+                        // 绘制字符
+                        const char = chars[Math.floor(Math.random() * chars.length)];
+                        ctxRain.fillText(char, drop.x, drop.y);
+                        
+                        // 更新位置
+                        if (!isFrozen) {
+                            drop.y += drop.speed;
+                        }
+                        
+                        // 重置
+                        if (drop.y > digitalRainCanvas.height) {
+                            drop.y = 0;
+                            drop.speed = 1 + Math.random() * 3;
+                        }
+                    });
+                } catch (error) {
+                    console.error('绘制数字雨失败:', error);
                 }
-                
-                // 绘制雨滴
-                ctxRain.font = '16px monospace';
-                window.rainDrops.forEach(drop => {
-                    // 随机颜色
-                    const colors = ['#c000ff', '#ff00a0', '#00f0ff', '#39ff14'];
-                    ctxRain.fillStyle = colors[Math.floor(Math.random() * colors.length)];
-                    
-                    // 绘制字符
-                    const char = chars[Math.floor(Math.random() * chars.length)];
-                    ctxRain.fillText(char, drop.x, drop.y);
-                    
-                    // 更新位置
-                    if (!isFrozen) {
-                        drop.y += drop.speed;
-                    }
-                    
-                    // 重置
-                    if (drop.y > digitalRainCanvas.height) {
-                        drop.y = 0;
-                        drop.speed = 1 + Math.random() * 3;
-                    }
-                });
             }
         }
 
