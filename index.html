@@ -291,20 +291,7 @@
             transform: translate(-50%, -50%) scale(1.05);
         }
 
-        /* 麦克风提示 */
-        #mic-status {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            padding: 0.5rem 1rem;
-            background: var(--panel-bg);
-            backdrop-filter: blur(20px) saturate(180%);
-            border: 1px solid var(--neon-blue);
-            border-radius: 20px;
-            font-size: 0.9rem;
-            color: var(--neon-blue);
-            z-index: 10;
-        }
+
 
         /* 互动控制面板 */
         #control-panel {
@@ -555,8 +542,7 @@
             
             <!-- 区块2：音频可视化核心区 -->
             <section class="section" id="section2">
-                <h2 class="main-title">音频可视化</h2>
-                <div id="mic-status">麦克风未连接，使用内置信号</div>
+                <h2 class="main-title">视觉效果</h2>
             </section>
             
             <!-- 区块3：数据流与全息卡片 -->
@@ -598,25 +584,6 @@
             <button id="toggle-panel">⚙️</button>
             <h3>CONTROL</h3>
             
-            <!-- 麦克风控制 -->
-            <button class="control-btn" id="mic-toggle">🎤 麦克风：关闭</button>
-            
-            <!-- 音乐控制组 -->
-            <div class="slider-container">
-                <label for="volume-slider">🎵 音量</label>
-                <input type="range" id="volume-slider" class="slider" min="0" max="1" step="0.1" value="0.7">
-            </div>
-            <div class="slider-container">
-                <label for="bpm-slider">⏱️ BPM: 130</label>
-                <input type="range" id="bpm-slider" class="slider" min="60" max="180" step="5" value="130">
-            </div>
-            <div class="preset-buttons">
-                <button class="preset-btn" data-bpm="130">1/1 标准</button>
-                <button class="preset-btn" data-bpm="65">½ 半速</button>
-                <button class="preset-btn" data-bpm="260">X2 加倍</button>
-            </div>
-            <button class="control-btn" id="play-pause">▶ 播放</button>
-            
             <!-- 视觉模式切换 -->
             <button class="control-btn" id="visual-mode">👁️ 视觉模式：赛博狂欢</button>
             
@@ -633,10 +600,8 @@
 
     <script>
         // 全局变量
-        let scene, camera, renderer, particles, audioContext, analyser, dataArray;
+        let scene, camera, renderer, particles;
         let canvas2d, ctx2d, digitalRainCanvas, ctxRain;
-        let isAudioPlaying = false;
-        let isMicActive = false;
         let isDigitalRainActive = true;
         let isFrozen = false;
         let mouseX = 0, mouseY = 0;
@@ -644,16 +609,12 @@
         let sections = document.querySelectorAll('.section');
         let currentVisualMode = 0; // 0: 赛博狂欢, 1: 脉冲矩阵, 2: 全息蓝调, 3: 故障增强
         let currentTheme = 0; // 0: 紫粉狂欢, 1: 青蓝冷色, 2: 熔金红, 3: 冰白单色
-        let bpm = 130;
-        let volume = 0.7;
-        let audioSources = [];
 
         // 初始化函数
         function init() {
             initScene();
             initCanvas();
             initUI();
-            initAudio();
             initControls();
             animate();
             setupScroll();
@@ -805,92 +766,7 @@
             }
         }
 
-        // 初始化音频系统
-        function initAudio() {
-            try {
-                // 创建音频上下文
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                
-                // 创建分析器
-                analyser = audioContext.createAnalyser();
-                analyser.fftSize = 2048;
-                const bufferLength = analyser.frequencyBinCount;
-                dataArray = new Uint8Array(bufferLength);
-                
-                // 创建合成器
-                createSynth();
-                
-            } catch (error) {
-                console.error('音频初始化失败:', error);
-            }
-        }
 
-        // 创建合成器
-        function createSynth() {
-            try {
-                // 主音量控制
-                const masterGain = audioContext.createGain();
-                masterGain.gain.value = volume;
-                masterGain.connect(analyser);
-                analyser.connect(audioContext.destination);
-                
-                // 低频贝斯
-                const bassOsc = audioContext.createOscillator();
-                const bassGain = audioContext.createGain();
-                
-                bassOsc.type = 'sawtooth';
-                bassOsc.frequency.value = 60;
-                
-                bassGain.gain.value = 0;
-                
-                bassOsc.connect(bassGain);
-                bassGain.connect(masterGain);
-                
-                // 高频镲音
-                const hihatOsc = audioContext.createOscillator();
-                const hihatGain = audioContext.createGain();
-                
-                hihatOsc.type = 'square';
-                hihatOsc.frequency.value = 8000;
-                
-                hihatGain.gain.value = 0;
-                
-                hihatOsc.connect(hihatGain);
-                hihatGain.connect(masterGain);
-                
-                // 启动振荡器
-                bassOsc.start();
-                hihatOsc.start();
-                
-                // 存储音频源
-                audioSources = [bassOsc, hihatOsc, bassGain, hihatGain, masterGain];
-                
-                // 创建节拍
-                let time = audioContext.currentTime;
-                const interval = 60 / bpm;
-                
-                function playBeat() {
-                    if (!isAudioPlaying) return;
-                    
-                    // 贝斯
-                    bassGain.gain.setValueAtTime(0.3, time);
-                    bassGain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
-                    
-                    // 镲音
-                    if (Math.floor(time / interval) % 2 === 0) {
-                        hihatGain.gain.setValueAtTime(0.1, time);
-                        hihatGain.gain.exponentialRampToValueAtTime(0.01, time + 0.05);
-                    }
-                    
-                    time += interval;
-                    setTimeout(playBeat, interval * 1000);
-                }
-                
-                playBeat();
-            } catch (error) {
-                console.error('创建合成器失败:', error);
-            }
-        }
 
         // 初始化控制面板
         function initControls() {
@@ -901,42 +777,6 @@
             togglePanel.addEventListener('click', () => {
                 controlPanel.classList.toggle('collapsed');
             });
-            
-            // 麦克风开关
-            const micToggle = document.getElementById('mic-toggle');
-            micToggle.addEventListener('click', toggleMic);
-            
-            // 音量控制
-            const volumeSlider = document.getElementById('volume-slider');
-            volumeSlider.addEventListener('input', (e) => {
-                volume = parseFloat(e.target.value);
-                if (audioSources[4]) {
-                    audioSources[4].gain.value = volume;
-                }
-            });
-            
-            // BPM控制
-            const bpmSlider = document.getElementById('bpm-slider');
-            const bpmLabel = bpmSlider.previousElementSibling;
-            bpmSlider.addEventListener('input', (e) => {
-                bpm = parseInt(e.target.value);
-                bpmLabel.textContent = `⏱️ BPM: ${bpm}`;
-            });
-            
-            // 节奏预设
-            const presetButtons = document.querySelectorAll('.preset-btn');
-            presetButtons.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const newBpm = parseInt(btn.dataset.bpm);
-                    bpm = newBpm;
-                    bpmSlider.value = newBpm;
-                    bpmLabel.textContent = `⏱️ BPM: ${newBpm}`;
-                });
-            });
-            
-            // 播放/暂停
-            const playPauseBtn = document.getElementById('play-pause');
-            playPauseBtn.addEventListener('click', togglePlayPause);
             
             // 视觉模式切换
             const visualModeBtn = document.getElementById('visual-mode');
@@ -955,68 +795,6 @@
             freezeToggle.addEventListener('click', toggleFreeze);
         }
 
-        // 切换麦克风
-        function toggleMic() {
-            const micToggle = document.getElementById('mic-toggle');
-            
-            if (!isMicActive) {
-                // 请求麦克风
-                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    navigator.mediaDevices.getUserMedia({ audio: true })
-                        .then(stream => {
-                            const micSource = audioContext.createMediaStreamSource(stream);
-                            micSource.connect(analyser);
-                            isMicActive = true;
-                            micToggle.textContent = '🎤 麦克风：开启';
-                            micToggle.classList.add('active');
-                            document.getElementById('mic-status').textContent = 'LIVE';
-                            playClickSound();
-                        })
-                        .catch(error => {
-                            console.log('麦克风访问被拒绝:', error);
-                            micToggle.textContent = '🎤 麦克风：未授权';
-                        });
-                }
-            } else {
-                // 关闭麦克风
-                isMicActive = false;
-                micToggle.textContent = '🎤 麦克风：关闭';
-                micToggle.classList.remove('active');
-                document.getElementById('mic-status').textContent = '麦克风未连接，使用内置信号';
-                playClickSound();
-            }
-        }
-
-        // 切换播放/暂停
-        function togglePlayPause() {
-            const playPauseBtn = document.getElementById('play-pause');
-            
-            if (!isAudioPlaying) {
-                isAudioPlaying = true;
-                playPauseBtn.textContent = '⏸️ 暂停';
-                playPauseBtn.classList.add('active');
-                // 重新创建合成器
-                createSynth();
-                playClickSound();
-            } else {
-                isAudioPlaying = false;
-                playPauseBtn.textContent = '▶ 播放';
-                playPauseBtn.classList.remove('active');
-                // 停止所有音频源
-                audioSources.forEach(source => {
-                    if (source.stop) {
-                        try {
-                            source.stop();
-                        } catch (e) {
-                            // 忽略已停止的音频源
-                        }
-                    }
-                });
-                audioSources = [];
-                playClickSound();
-            }
-        }
-
         // 切换视觉模式
         function toggleVisualMode() {
             const visualModeBtn = document.getElementById('visual-mode');
@@ -1024,7 +802,6 @@
             
             currentVisualMode = (currentVisualMode + 1) % modes.length;
             visualModeBtn.textContent = `👁️ 视觉模式：${modes[currentVisualMode]}`;
-            playClickSound();
         }
 
         // 切换数字雨
@@ -1041,8 +818,6 @@
                 digitalRainToggle.classList.remove('active');
                 digitalRainCanvas.style.display = 'none';
             }
-            
-            playClickSound();
         }
 
         // 切换色彩主题
@@ -1062,7 +837,6 @@
             }
             
             themeToggle.textContent = `🎨 色彩主题：${themes[currentTheme]}`;
-            playClickSound();
         }
 
         // 切换冻结/恢复
@@ -1077,28 +851,6 @@
                 freezeToggle.textContent = '⏸️ 冻结：关闭';
                 freezeToggle.classList.remove('active');
             }
-            
-            playClickSound();
-        }
-
-        // 播放点击音效
-        function playClickSound() {
-            if (!audioContext) return;
-            
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
-            
-            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-            
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.1);
         }
 
         // 设置滚动
@@ -1150,30 +902,13 @@
             
             // 启动按钮
             const startBtn = document.getElementById('start-btn');
-            startBtn.addEventListener('click', async () => {
-                try {
-                    if (audioContext.state === 'suspended') {
-                        await audioContext.resume();
-                    }
-                    isAudioPlaying = true;
-                    startBtn.style.display = 'none';
-                    playClickSound();
-                } catch (error) {
-                    console.error('启动音频失败:', error);
-                }
+            startBtn.addEventListener('click', () => {
+                startBtn.style.display = 'none';
             });
             
-            // 点击页面恢复音频
-            document.addEventListener('click', async () => {
-                try {
-                    if (audioContext && audioContext.state === 'suspended') {
-                        await audioContext.resume();
-                        isAudioPlaying = true;
-                        document.getElementById('start-btn').style.display = 'none';
-                    }
-                } catch (error) {
-                    console.error('恢复音频失败:', error);
-                }
+            // 点击页面隐藏启动按钮
+            document.addEventListener('click', () => {
+                document.getElementById('start-btn').style.display = 'none';
             });
         }
 
@@ -1181,18 +916,11 @@
         function setupKeyboardShortcuts() {
             document.addEventListener('keydown', (event) => {
                 switch (event.key.toLowerCase()) {
-                    case 'm':
-                        toggleMic();
-                        break;
                     case 'v':
                         toggleVisualMode();
                         break;
                     case 'd':
                         toggleDigitalRain();
-                        break;
-                    case ' ': // 空格键
-                        event.preventDefault();
-                        togglePlayPause();
                         break;
                     case 'f':
                         toggleFreeze();
@@ -1233,70 +961,43 @@
                     particles.rotation.y += mouseX * 0.001;
                 }
                 
-                // 音频响应
-                if (isAudioPlaying && analyser) {
-                    try {
-                        analyser.getByteFrequencyData(dataArray);
-                        
-                        // 获取低频能量
-                        const lowFreqEnergy = dataArray.slice(0, 32).reduce((sum, value) => sum + value, 0) / 32;
-                        
-                        // 缩放粒子
-                        const scale = 1 + lowFreqEnergy / 255 * 0.3;
-                        particles.scale.set(scale, scale, scale);
-                        
-                        // 更新粒子颜色
-                        const colors = particles.geometry.attributes.color.array;
-                        for (let i = 0; i < colors.length; i += 3) {
-                            // 根据频率数据调整颜色
-                            const freqIndex = Math.floor((i / 3) % dataArray.length);
-                            const energy = dataArray[freqIndex] / 255;
-                            
-                            // 根据视觉模式调整颜色
-                            switch (currentVisualMode) {
-                                case 0: // 赛博狂欢
-                                    colors[i] = 0.7 + energy * 0.3; // 紫色
-                                    colors[i + 1] = energy * 0.5; // 粉色
-                                    colors[i + 2] = 0.7 + energy * 0.3; // 蓝色
-                                    break;
-                                case 1: // 脉冲矩阵
-                                    colors[i] = energy * 0.8; // 蓝色
-                                    colors[i + 1] = energy * 0.8; // 蓝色
-                                    colors[i + 2] = 1; // 白色
-                                    break;
-                                case 2: // 全息蓝调
-                                    colors[i] = 0.5 + energy * 0.5; // 浅蓝色
-                                    colors[i + 1] = 0.8 + energy * 0.2; // 白色
-                                    colors[i + 2] = 1; // 蓝色
-                                    break;
-                                case 3: // 故障增强
-                                    colors[i] = Math.random() * 0.5 + 0.5; // 随机红色
-                                    colors[i + 1] = Math.random() * 0.5; // 随机绿色
-                                    colors[i + 2] = Math.random() * 0.5 + 0.5; // 随机蓝色
-                                    break;
-                            }
-                        }
-                        particles.geometry.attributes.color.needsUpdate = true;
-                        
-                        // 更新频谱条
-                        updateSpectrumBar();
-                    } catch (error) {
-                        console.error('更新粒子失败:', error);
+                // 更新粒子颜色
+                const colors = particles.geometry.attributes.color.array;
+                const time = Date.now() * 0.001;
+                for (let i = 0; i < colors.length; i += 3) {
+                    // 根据时间和视觉模式调整颜色
+                    const index = i / 3;
+                    const phase = (time + index * 0.1) % 1;
+                    
+                    // 根据视觉模式调整颜色
+                    switch (currentVisualMode) {
+                        case 0: // 赛博狂欢
+                            colors[i] = 0.7 + Math.sin(phase * Math.PI * 2) * 0.3; // 紫色
+                            colors[i + 1] = phase * 0.5; // 粉色
+                            colors[i + 2] = 0.7 + Math.cos(phase * Math.PI * 2) * 0.3; // 蓝色
+                            break;
+                        case 1: // 脉冲矩阵
+                            colors[i] = phase * 0.8; // 蓝色
+                            colors[i + 1] = phase * 0.8; // 蓝色
+                            colors[i + 2] = 1; // 白色
+                            break;
+                        case 2: // 全息蓝调
+                            colors[i] = 0.5 + phase * 0.5; // 浅蓝色
+                            colors[i + 1] = 0.8 + phase * 0.2; // 白色
+                            colors[i + 2] = 1; // 蓝色
+                            break;
+                        case 3: // 故障增强
+                            colors[i] = Math.random() * 0.5 + 0.5; // 随机红色
+                            colors[i + 1] = Math.random() * 0.5; // 随机绿色
+                            colors[i + 2] = Math.random() * 0.5 + 0.5; // 随机蓝色
+                            break;
                     }
                 }
+                particles.geometry.attributes.color.needsUpdate = true;
             }
         }
 
-        // 更新频谱条
-        function updateSpectrumBar() {
-            const bars = document.querySelectorAll('.spectrum柱');
-            bars.forEach((bar, index) => {
-                if (index < dataArray.length / 4) {
-                    const height = dataArray[index] / 255 * 40;
-                    bar.style.height = `${height}px`;
-                }
-            });
-        }
+
 
         // 绘制Canvas
         function drawCanvas() {
@@ -1304,56 +1005,55 @@
                 try {
                     ctx2d.clearRect(0, 0, canvas2d.width, canvas2d.height);
                     
-                    // 绘制环形频谱
-                    if (isAudioPlaying && analyser && dataArray) {
-                        const centerX = canvas2d.width / 2;
-                        const centerY = canvas2d.height / 2;
-                        const radius = 100;
+                    // 绘制视觉效果
+                    const centerX = canvas2d.width / 2;
+                    const centerY = canvas2d.height / 2;
+                    const radius = 100;
+                    const time = Date.now() * 0.001;
+                    
+                    ctx2d.save();
+                    ctx2d.translate(centerX, centerY);
+                    
+                    for (let i = 0; i < 64; i++) {
+                        const angle = (i / 64) * Math.PI * 2;
+                        const phase = (time + i * 0.1) % 1;
+                        const barLength = phase * 50;
                         
-                        ctx2d.save();
-                        ctx2d.translate(centerX, centerY);
+                        const x1 = Math.cos(angle) * radius;
+                        const y1 = Math.sin(angle) * radius;
+                        const x2 = Math.cos(angle) * (radius + barLength);
+                        const y2 = Math.sin(angle) * (radius + barLength);
                         
-                        for (let i = 0; i < 64; i++) {
-                            const angle = (i / 64) * Math.PI * 2;
-                            const energy = dataArray[i] / 255;
-                            const barLength = energy * 50;
-                            
-                            const x1 = Math.cos(angle) * radius;
-                            const y1 = Math.sin(angle) * radius;
-                            const x2 = Math.cos(angle) * (radius + barLength);
-                            const y2 = Math.sin(angle) * (radius + barLength);
-                            
-                            // 颜色渐变
-                            const gradient = ctx2d.createLinearGradient(x1, y1, x2, y2);
-                            switch (currentVisualMode) {
-                                case 0:
-                                    gradient.addColorStop(0, '#c000ff');
-                                    gradient.addColorStop(1, '#00f0ff');
-                                    break;
-                                case 1:
-                                    gradient.addColorStop(0, '#00f0ff');
-                                    gradient.addColorStop(1, '#ffffff');
-                                    break;
-                                case 2:
-                                    gradient.addColorStop(0, '#00a0ff');
-                                    gradient.addColorStop(1, '#ffffff');
-                                    break;
-                                case 3:
-                                    gradient.addColorStop(0, '#ff00a0');
-                                    gradient.addColorStop(1, '#c000ff');
-                                    break;
-                            }
-                            
-                            ctx2d.beginPath();
-                            ctx2d.moveTo(x1, y1);
-                            ctx2d.lineTo(x2, y2);
-                            ctx2d.lineWidth = 2;
-                            ctx2d.strokeStyle = gradient;
-                            ctx2d.stroke();
+                        // 颜色渐变
+                        const gradient = ctx2d.createLinearGradient(x1, y1, x2, y2);
+                        switch (currentVisualMode) {
+                            case 0:
+                                gradient.addColorStop(0, '#c000ff');
+                                gradient.addColorStop(1, '#00f0ff');
+                                break;
+                            case 1:
+                                gradient.addColorStop(0, '#00f0ff');
+                                gradient.addColorStop(1, '#ffffff');
+                                break;
+                            case 2:
+                                gradient.addColorStop(0, '#00a0ff');
+                                gradient.addColorStop(1, '#ffffff');
+                                break;
+                            case 3:
+                                gradient.addColorStop(0, '#ff00a0');
+                                gradient.addColorStop(1, '#c000ff');
+                                break;
                         }
                         
-                        ctx2d.restore();
+                        ctx2d.beginPath();
+                        ctx2d.moveTo(x1, y1);
+                        ctx2d.lineTo(x2, y2);
+                        ctx2d.lineWidth = 2;
+                        ctx2d.strokeStyle = gradient;
+                        ctx2d.stroke();
                     }
+                    
+                    ctx2d.restore();
                 } catch (error) {
                     console.error('绘制Canvas失败:', error);
                 }
