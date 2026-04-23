@@ -178,17 +178,21 @@
         let width, height;
         let particles = [];
         let stars = [];
+        let meteors = [];
         let mouseX = 0, mouseY = 0;
         let lastMouseX = 0, lastMouseY = 0;
         let isMouseDown = false;
         let mouseTrail = [];
         let explosions = [];
+        let fireworks = [];
         let lastTime = performance.now();
         let frameCount = 0;
         let fps = 60;
         let time = 0;
         let clickRings = [];
         let effectMode = 0; // 0: normal, 1: trail, 2: explosion, 3: wave
+        let lastFireworkTime = 0;
+        let lastMeteorTime = 0;
 
         const PARTICLE_COUNT = 250;
         const STAR_COUNT = 150;
@@ -415,6 +419,124 @@
             }
         }
 
+        class Meteor {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * width;
+                this.y = -50;
+                this.vx = (Math.random() - 0.5) * 3;
+                this.vy = 3 + Math.random() * 5;
+                this.radius = 2 + Math.random() * 3;
+                this.alpha = 0.8 + Math.random() * 0.2;
+                this.trailLength = 30 + Math.random() * 20;
+                this.trail = [];
+            }
+
+            update() {
+                this.trail.unshift({ x: this.x, y: this.y, alpha: this.alpha });
+                if (this.trail.length > this.trailLength) {
+                    this.trail.pop();
+                }
+                
+                this.x += this.vx;
+                this.y += this.vy;
+                this.alpha -= 0.01;
+                
+                return this.y < height + 50 && this.alpha > 0;
+            }
+
+            draw() {
+                this.trail.forEach((point, index) => {
+                    const trailAlpha = point.alpha * (1 - index / this.trail.length);
+                    ctx.beginPath();
+                    ctx.arc(point.x, point.y, this.radius * (1 - index / this.trail.length), 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(60, 100%, 70%, ${trailAlpha})`;
+                    ctx.fill();
+                });
+                
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(60, 100%, 90%, ${this.alpha})`;
+                ctx.fill();
+            }
+        }
+
+        class Firework {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * width;
+                this.y = height + 50;
+                this.targetY = Math.random() * height * 0.6;
+                this.vy = -6 - Math.random() * 4;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.alpha = 1;
+                this.hue = Math.random() * 360;
+                this.exploded = false;
+                this.explosionParticles = [];
+            }
+
+            update() {
+                if (!this.exploded) {
+                    this.y += this.vy;
+                    this.x += this.vx;
+                    this.vy += 0.1;
+                    
+                    if (this.y <= this.targetY) {
+                        this.exploded = true;
+                        this.createExplosion();
+                    }
+                } else {
+                    this.explosionParticles.forEach(p => {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.vy += 0.1;
+                        p.alpha -= 0.01;
+                        p.life--;
+                    });
+                    this.explosionParticles = this.explosionParticles.filter(p => p.life > 0);
+                }
+                
+                return !this.exploded || this.explosionParticles.length > 0;
+            }
+
+            createExplosion() {
+                for (let i = 0; i < 50; i++) {
+                    this.explosionParticles.push({
+                        x: this.x,
+                        y: this.y,
+                        vx: (Math.random() - 0.5) * 8,
+                        vy: (Math.random() - 0.5) * 8,
+                        radius: 1 + Math.random() * 2,
+                        alpha: 1,
+                        life: 100,
+                        hue: this.hue + Math.random() * 30
+                    });
+                }
+            }
+
+            draw() {
+                if (!this.exploded) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(${this.hue}, 100%, 70%, ${this.alpha})`;
+                    ctx.fill();
+                } else {
+                    this.explosionParticles.forEach(p => {
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                        ctx.fillStyle = `hsla(${p.hue}, 100%, 70%, ${p.alpha})`;
+                        ctx.fill();
+                    });
+                }
+            }
+        }
+
         function init() {
             resize();
             particles = [];
@@ -507,6 +629,7 @@
 
         function animate() {
             time++;
+            const currentTime = performance.now();
             
             ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
             ctx.fillRect(0, 0, width, height);
@@ -516,6 +639,32 @@
             stars.forEach(s => {
                 s.update();
                 s.draw();
+            });
+
+            // 自动生成流星
+            if (currentTime - lastMeteorTime > 2000 && meteors.length < 5) {
+                meteors.push(new Meteor());
+                lastMeteorTime = currentTime;
+            }
+
+            // 自动生成烟花
+            if (currentTime - lastFireworkTime > 3000 && fireworks.length < 3) {
+                fireworks.push(new Firework());
+                lastFireworkTime = currentTime;
+            }
+
+            // 流星效果
+            meteors = meteors.filter(meteor => {
+                const alive = meteor.update();
+                if (alive) meteor.draw();
+                return alive;
+            });
+
+            // 烟花效果
+            fireworks = fireworks.filter(firework => {
+                const alive = firework.update();
+                if (alive) firework.draw();
+                return alive;
             });
 
             // 鼠标轨迹效果
@@ -557,7 +706,6 @@
             });
 
             frameCount++;
-            const currentTime = performance.now();
             if (currentTime - lastTime >= 1000) {
                 fps = frameCount;
                 frameCount = 0;
