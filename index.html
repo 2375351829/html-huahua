@@ -5,47 +5,57 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>赛博狂欢 - Cyber Rave</title>
     <!-- 引入外部库 -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+    
+    <!-- ES Module Import Map -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    
     <style>
         /* CSS 变量定义 - 默认主题：紫粉狂欢 */
         :root {
-            --bg-color: #000011;
-            --neon-purple: #c000ff;
-            --neon-pink: #ff00a0;
-            --neon-blue: #00f0ff;
-            --neon-green: #39ff14;
+            --bg-color: #020010;
+            --neon-1: #c000ff;
+            --neon-2: #ff00a0;
+            --neon-3: #00f0ff;
+            --neon-4: #39ff14;
             --text-color: #ffffff;
             --card-bg: rgba(20, 20, 40, 0.7);
             --panel-bg: rgba(10, 10, 30, 0.8);
-            --border-color: var(--neon-purple);
+            --border-color: var(--neon-1);
         }
 
         /* 青蓝冷色主题 */
         :root.theme-cyan {
-            --neon-purple: #00f0ff;
-            --neon-pink: #00a0ff;
-            --neon-blue: #0060ff;
-            --neon-green: #00ff80;
-            --border-color: var(--neon-blue);
+            --neon-1: #00f0ff;
+            --neon-2: #00a0ff;
+            --neon-3: #0060ff;
+            --neon-4: #00ff80;
+            --border-color: var(--neon-3);
         }
 
         /* 熔金红主题 */
         :root.theme-gold {
-            --neon-purple: #ff8000;
-            --neon-pink: #ff0000;
-            --neon-blue: #ff4000;
-            --neon-green: #ffc000;
-            --border-color: var(--neon-pink);
+            --neon-1: #ff8000;
+            --neon-2: #ff0000;
+            --neon-3: #ff4000;
+            --neon-4: #ffc000;
+            --border-color: var(--neon-2);
         }
 
         /* 冰白单色主题 */
         :root.theme-ice {
-            --neon-purple: #ffffff;
-            --neon-pink: #e0e0ff;
-            --neon-blue: #c0c0ff;
-            --neon-green: #a0a0ff;
-            --border-color: var(--neon-purple);
+            --neon-1: #ffffff;
+            --neon-2: #e0e0ff;
+            --neon-3: #c0c0ff;
+            --neon-4: #a0a0ff;
+            --border-color: var(--neon-1);
         }
 
         /* 全局样式 */
@@ -93,6 +103,42 @@
             pointer-events: none;
         }
 
+        /* 数字雨容器 */
+        #digital-rain {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        /* 扫描线效果 */
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, var(--neon-4), transparent);
+            animation: scan 3s linear infinite;
+            z-index: 4;
+        }
+
+        /* 闪白效果 */
+        #flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            opacity: 0;
+            z-index: 5;
+            pointer-events: none;
+        }
+
         /* UI容器 */
         #ui {
             position: absolute;
@@ -100,7 +146,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 3;
+            z-index: 10;
             display: flex;
             flex-direction: column;
         }
@@ -122,12 +168,12 @@
             font-weight: bold;
             text-align: center;
             margin-bottom: 2rem;
-            color: var(--neon-purple);
+            color: var(--neon-1);
             text-shadow: 
-                0 0 10px var(--neon-purple),
-                0 0 20px var(--neon-purple),
-                0 0 30px var(--neon-purple),
-                0 0 40px var(--neon-purple);
+                0 0 10px var(--neon-1),
+                0 0 20px var(--neon-1),
+                0 0 30px var(--neon-1),
+                0 0 40px var(--neon-1);
             animation: glitch 3s infinite;
             position: relative;
             z-index: 10;
@@ -138,25 +184,13 @@
             font-size: 1.2rem;
             text-align: center;
             margin-bottom: 3rem;
-            color: var(--neon-blue);
-            text-shadow: 0 0 10px var(--neon-blue);
+            color: var(--neon-3);
+            text-shadow: 0 0 10px var(--neon-3);
             overflow: hidden;
-            border-right: 0.15em solid var(--neon-blue);
+            border-right: 0.15em solid var(--neon-3);
             white-space: nowrap;
             margin: 0 auto;
             animation: typing 3s steps(40, end), blink-caret 0.75s step-end infinite;
-        }
-
-        /* 扫描线效果 */
-        .scan-line {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, transparent, var(--neon-green), transparent);
-            animation: scan 3s linear infinite;
-            z-index: 9;
         }
 
         /* 频谱条容器 */
@@ -176,7 +210,7 @@
         /* 频谱柱样式 */
         .spectrum柱 {
             width: 8px;
-            background: linear-gradient(to top, var(--neon-pink), var(--neon-purple));
+            background: linear-gradient(to top, var(--neon-2), var(--neon-1));
             border-radius: 4px 4px 0 0;
             animation: pulse 1s infinite;
         }
@@ -195,7 +229,7 @@
             height: 200px;
             background: var(--card-bg);
             backdrop-filter: blur(20px) saturate(180%);
-            border: 1px solid var(--neon-blue);
+            border: 1px solid var(--neon-3);
             border-radius: 10px;
             padding: 1.5rem;
             display: flex;
@@ -219,8 +253,8 @@
             font-size: 1.5rem;
             font-weight: bold;
             margin-bottom: 1rem;
-            color: var(--neon-green);
-            text-shadow: 0 0 10px var(--neon-green);
+            color: var(--neon-4);
+            text-shadow: 0 0 10px var(--neon-4);
         }
 
         /* 卡片内部小Canvas */
@@ -231,14 +265,6 @@
             background: rgba(0, 0, 0, 0.5);
         }
 
-        /* 数字雨容器 */
-        #digital-rain {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            z-index: 5;
-        }
-
         /* 滚动标语 */
         #scrolling-text {
             position: absolute;
@@ -246,8 +272,8 @@
             left: 100%;
             transform: translateY(-50%);
             font-size: 2rem;
-            color: var(--neon-pink);
-            text-shadow: 0 0 10px var(--neon-pink);
+            color: var(--neon-2);
+            text-shadow: 0 0 10px var(--neon-2);
             white-space: nowrap;
             animation: scroll 20s linear infinite;
             z-index: 6;
@@ -258,11 +284,11 @@
             font-size: 4rem;
             font-weight: bold;
             text-align: center;
-            color: var(--neon-green);
+            color: var(--neon-4);
             text-shadow: 
-                0 0 10px var(--neon-green),
-                0 0 20px var(--neon-green),
-                0 0 30px var(--neon-green);
+                0 0 10px var(--neon-4),
+                0 0 20px var(--neon-4),
+                0 0 30px var(--neon-4);
             animation: glitch 2s infinite;
             z-index: 10;
         }
@@ -273,25 +299,39 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            padding: 1rem 2rem;
+            padding: 1.5rem 3rem;
             background: var(--panel-bg);
             backdrop-filter: blur(20px) saturate(180%);
-            border: 2px solid var(--neon-purple);
+            border: 2px solid var(--neon-1);
             border-radius: 50px;
-            color: var(--neon-purple);
-            font-size: 1.2rem;
+            color: var(--neon-1);
+            font-size: 1.5rem;
             font-weight: bold;
             cursor: pointer;
             z-index: 100;
             transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(192, 0, 255, 0.5);
         }
 
         #start-btn:hover {
-            box-shadow: 0 0 20px var(--neon-purple);
+            box-shadow: 0 0 30px var(--neon-1);
             transform: translate(-50%, -50%) scale(1.05);
         }
 
-
+        /* 麦克风提示 */
+        #mic-status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 0.5rem 1rem;
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--neon-3);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: var(--neon-3);
+            z-index: 10;
+        }
 
         /* 互动控制面板 */
         #control-panel {
@@ -311,10 +351,10 @@
 
         /* 控制面板标题 */
         #control-panel h3 {
-            color: var(--neon-purple);
+            color: var(--neon-1);
             text-align: center;
             margin-bottom: 1rem;
-            text-shadow: 0 0 10px var(--neon-purple);
+            text-shadow: 0 0 10px var(--neon-1);
         }
 
         /* 控制面板按钮 */
@@ -324,7 +364,7 @@
             padding: 0.8rem;
             margin-bottom: 0.8rem;
             background: rgba(255, 255, 255, 0.1);
-            border: 1px solid var(--neon-blue);
+            border: 1px solid var(--neon-3);
             border-radius: 8px;
             color: var(--text-color);
             font-size: 0.9rem;
@@ -335,12 +375,12 @@
 
         .control-btn:hover {
             background: rgba(0, 240, 255, 0.2);
-            box-shadow: 0 0 15px var(--neon-blue);
+            box-shadow: 0 0 15px var(--neon-3);
         }
 
         .control-btn.active {
             background: rgba(0, 240, 255, 0.3);
-            box-shadow: 0 0 20px var(--neon-blue);
+            box-shadow: 0 0 20px var(--neon-3);
         }
 
         /* 滑块容器 */
@@ -351,7 +391,7 @@
         .slider-container label {
             display: block;
             margin-bottom: 0.5rem;
-            color: var(--neon-blue);
+            color: var(--neon-3);
         }
 
         .slider {
@@ -368,10 +408,10 @@
             appearance: none;
             width: 16px;
             height: 16px;
-            background: var(--neon-purple);
+            background: var(--neon-1);
             border-radius: 50%;
             cursor: pointer;
-            box-shadow: 0 0 10px var(--neon-purple);
+            box-shadow: 0 0 10px var(--neon-1);
         }
 
         /* 预设按钮组 */
@@ -385,7 +425,7 @@
             flex: 1;
             padding: 0.5rem;
             background: rgba(255, 255, 255, 0.1);
-            border: 1px solid var(--neon-pink);
+            border: 1px solid var(--neon-2);
             border-radius: 6px;
             color: var(--text-color);
             font-size: 0.8rem;
@@ -395,7 +435,7 @@
 
         .preset-btn:hover {
             background: rgba(255, 0, 160, 0.2);
-            box-shadow: 0 0 10px var(--neon-pink);
+            box-shadow: 0 0 10px var(--neon-2);
         }
 
         /* 面板折叠按钮 */
@@ -405,19 +445,19 @@
             right: 10px;
             width: 30px;
             height: 30px;
-            background: var(--neon-purple);
+            background: var(--neon-1);
             border: none;
             border-radius: 50%;
             color: white;
             font-size: 1.2rem;
             cursor: pointer;
-            box-shadow: 0 0 10px var(--neon-purple);
+            box-shadow: 0 0 10px var(--neon-1);
             transition: all 0.3s ease;
         }
 
         #toggle-panel:hover {
             transform: scale(1.1);
-            box-shadow: 0 0 15px var(--neon-purple);
+            box-shadow: 0 0 15px var(--neon-1);
         }
 
         /* 移动端适配 */
@@ -491,7 +531,7 @@
 
         @keyframes blink-caret {
             from, to { border-color: transparent; }
-            50% { border-color: var(--neon-blue); }
+            50% { border-color: var(--neon-3); }
         }
 
         @keyframes scan {
@@ -530,11 +570,19 @@
         <!-- 2D Canvas容器 -->
         <canvas id="canvas2d"></canvas>
         
+        <!-- 数字雨容器 -->
+        <div id="digital-rain"></div>
+        
+        <!-- 闪白效果 -->
+        <div id="flash"></div>
+        
+        <!-- 扫描线 -->
+        <div class="scan-line"></div>
+        
         <!-- UI容器 -->
         <div id="ui">
             <!-- 区块1：全屏加载与主视觉 -->
             <section class="section" id="section1">
-                <div class="scan-line"></div>
                 <h1 class="main-title">CYBER RAVE<br>霓虹狂欢</h1>
                 <p class="sub-title">系统初始化 ● 声音载入中 ● 2026</p>
                 <div id="spectrum-bar"></div>
@@ -542,7 +590,8 @@
             
             <!-- 区块2：音频可视化核心区 -->
             <section class="section" id="section2">
-                <h2 class="main-title">视觉效果</h2>
+                <h2 class="main-title">音频可视化</h2>
+                <div id="mic-status">麦克风未连接，使用内置信号</div>
             </section>
             
             <!-- 区块3：数据流与全息卡片 -->
@@ -566,7 +615,6 @@
             
             <!-- 区块4：数字雨传送带 -->
             <section class="section" id="section4">
-                <div id="digital-rain"></div>
                 <div id="scrolling-text">SIGNAL TRANSMISSION · DATA FLOW · CYBER RAVE ∞ 信号永续</div>
             </section>
             
@@ -577,12 +625,31 @@
         </div>
         
         <!-- 启动按钮 -->
-        <button id="start-btn">▶ 点击启动</button>
+        <button id="start-btn">▶ START RAVE</button>
         
         <!-- 互动控制面板 -->
         <div id="control-panel">
             <button id="toggle-panel">⚙️</button>
             <h3>CONTROL</h3>
+            
+            <!-- 麦克风控制 -->
+            <button class="control-btn" id="mic-toggle">🎤 麦克风：关闭</button>
+            
+            <!-- 音乐控制组 -->
+            <div class="slider-container">
+                <label for="volume-slider">🎵 音量</label>
+                <input type="range" id="volume-slider" class="slider" min="0" max="1" step="0.1" value="0.7">
+            </div>
+            <div class="slider-container">
+                <label for="bpm-slider">⏱️ BPM: 130</label>
+                <input type="range" id="bpm-slider" class="slider" min="60" max="180" step="5" value="130">
+            </div>
+            <div class="preset-buttons">
+                <button class="preset-btn" data-bpm="65">½ 半速</button>
+                <button class="preset-btn" data-bpm="130">1/1 标准</button>
+                <button class="preset-btn" data-bpm="260">X2 加倍</button>
+            </div>
+            <button class="control-btn" id="play-pause">▶ 播放</button>
             
             <!-- 视觉模式切换 -->
             <button class="control-btn" id="visual-mode">👁️ 视觉模式：赛博狂欢</button>
@@ -598,10 +665,19 @@
         </div>
     </div>
 
-    <script>
-        // 全局变量
-        let scene, camera, renderer, particles;
+    <script type="module">
+        // === 导入Three.js模块 ===
+        import * as THREE from 'three';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+        import { AfterimagePass } from 'three/addons/postprocessing/AfterimagePass.js';
+        
+        // === 全局变量 ===
+        let scene, camera, renderer, composer, particles, particleGeometry, particleMaterial, lines;
         let canvas2d, ctx2d, digitalRainCanvas, ctxRain;
+        let isAudioPlaying = false;
+        let isMicActive = false;
         let isDigitalRainActive = true;
         let isFrozen = false;
         let mouseX = 0, mouseY = 0;
@@ -609,12 +685,19 @@
         let sections = document.querySelectorAll('.section');
         let currentVisualMode = 0; // 0: 赛博狂欢, 1: 脉冲矩阵, 2: 全息蓝调, 3: 故障增强
         let currentTheme = 0; // 0: 紫粉狂欢, 1: 青蓝冷色, 2: 熔金红, 3: 冰白单色
+        let bpm = 130;
+        let volume = 0.7;
+        let audioContext, analyser, dataArray, micSource;
+        let audioSources = [];
+        let lastBeatTime = 0;
+        let beatThreshold = 0.5;
 
-        // 初始化函数
+        // === 初始化函数 ===
         function init() {
             initScene();
             initCanvas();
             initUI();
+            initAudio();
             initControls();
             animate();
             setupScroll();
@@ -622,10 +705,11 @@
             setupKeyboardShortcuts();
         }
 
-        // 初始化3D场景
+        // === 初始化3D场景 ===
         function initScene() {
             // 创建场景
             scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x020010);
             
             // 创建相机
             camera = new THREE.PerspectiveCamera(
@@ -637,39 +721,53 @@
             camera.position.z = 50;
             
             // 创建渲染器
-            renderer = new THREE.WebGLRenderer({ alpha: true });
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setClearColor(0x000011, 0);
+            renderer.setPixelRatio(window.devicePixelRatio);
             document.getElementById('canvas3d').appendChild(renderer.domElement);
             
             // 创建粒子系统
             createParticles();
+            
+            // 创建连线
+            createLines();
             
             // 添加光照
             const light = new THREE.PointLight(0xc000ff, 1, 100);
             light.position.set(0, 0, 0);
             scene.add(light);
             
+            // 初始化后处理
+            initPostProcessing();
+            
             // 窗口大小调整
             window.addEventListener('resize', onWindowResize);
         }
 
-        // 创建粒子系统
+        // === 创建粒子系统 ===
         function createParticles() {
             const particleCount = window.innerWidth > 768 ? 5000 : 2500;
-            const geometry = new THREE.BufferGeometry();
+            particleGeometry = new THREE.BufferGeometry();
             const positions = new Float32Array(particleCount * 3);
             const colors = new Float32Array(particleCount * 3);
             
             for (let i = 0; i < particleCount; i++) {
-                // 创建环形粒子
+                // 创建双环结构
                 const radius = 20 + Math.random() * 10;
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.random() * Math.PI * 2;
                 
-                positions[i * 3] = radius * Math.sin(theta) * Math.cos(phi);
-                positions[i * 3 + 1] = radius * Math.sin(theta) * Math.sin(phi);
-                positions[i * 3 + 2] = radius * Math.cos(theta);
+                // 主环
+                if (i % 2 === 0) {
+                    positions[i * 3] = radius * Math.sin(theta) * Math.cos(phi);
+                    positions[i * 3 + 1] = radius * Math.sin(theta) * Math.sin(phi);
+                    positions[i * 3 + 2] = radius * Math.cos(theta);
+                } else {
+                    // 次级环
+                    positions[i * 3] = radius * 0.7 * Math.sin(theta) * Math.cos(phi);
+                    positions[i * 3 + 1] = radius * 0.7 * Math.sin(theta) * Math.sin(phi);
+                    positions[i * 3 + 2] = radius * 0.7 * Math.cos(theta) + 10;
+                }
                 
                 // 初始颜色
                 colors[i * 3] = 0.7 + Math.random() * 0.3; // 紫色
@@ -677,12 +775,12 @@
                 colors[i * 3 + 2] = 0.7 + Math.random() * 0.3; // 蓝色
             }
             
-            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
             
             // 创建材质
-            const material = new THREE.PointsMaterial({
-                size: 0.3,
+            particleMaterial = new THREE.PointsMaterial({
+                size: 0.05,
                 vertexColors: true,
                 blending: THREE.AdditiveBlending,
                 transparent: true,
@@ -690,18 +788,63 @@
             });
             
             // 创建粒子
-            particles = new THREE.Points(geometry, material);
+            particles = new THREE.Points(particleGeometry, particleMaterial);
             scene.add(particles);
         }
 
-        // 窗口大小调整
+        // === 创建连线 ===
+        function createLines() {
+            const lineGeometry = new THREE.BufferGeometry();
+            const linePositions = new Float32Array(1000 * 6); // 500 lines
+            const lineColors = new Float32Array(1000 * 6);
+            
+            lineGeometry.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
+            lineGeometry.setAttribute('color', new THREE.BufferAttribute(lineColors, 3));
+            
+            const lineMaterial = new THREE.LineBasicMaterial({
+                vertexColors: true,
+                blending: THREE.AdditiveBlending,
+                transparent: true,
+                opacity: 0.3
+            });
+            
+            lines = new THREE.LineSegments(lineGeometry, lineMaterial);
+            scene.add(lines);
+        }
+
+        // === 初始化后处理 ===
+        function initPostProcessing() {
+            const renderScene = new RenderPass(scene, camera);
+            
+            const bloomPass = new UnrealBloomPass(
+                new THREE.Vector2(window.innerWidth, window.innerHeight),
+                1.5, // 强度
+                0.4, // 半径
+                0.1  // 阈值
+            );
+            
+            const afterimagePass = new AfterimagePass();
+            afterimagePass.uniforms['damp'].value = 0.96;
+            
+            composer = new EffectComposer(renderer);
+            composer.addPass(renderScene);
+            composer.addPass(bloomPass);
+            
+            // 移动端优化
+            if (window.innerWidth > 768) {
+                composer.addPass(afterimagePass);
+            }
+        }
+
+        // === 窗口大小调整 ===
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        // 初始化Canvas 2D
+        // === 初始化Canvas 2D ===
         function initCanvas() {
             // 主Canvas
             canvas2d = document.getElementById('canvas2d');
@@ -720,7 +863,7 @@
             initCardCanvases();
         }
 
-        // 初始化卡片Canvas
+        // === 初始化卡片Canvas ===
         function initCardCanvases() {
             const cardCanvases = document.querySelectorAll('.card-canvas');
             cardCanvases.forEach((canvas, index) => {
@@ -754,7 +897,7 @@
             });
         }
 
-        // 初始化UI
+        // === 初始化UI ===
         function initUI() {
             // 创建频谱条
             const spectrumBar = document.getElementById('spectrum-bar');
@@ -766,9 +909,116 @@
             }
         }
 
+        // === 初始化音频系统 ===
+        function initAudio() {
+            try {
+                // 创建音频上下文
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // 创建分析器
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 2048;
+                const bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+                
+                // 创建合成器
+                createSynth();
+                
+            } catch (error) {
+                console.error('音频初始化失败:', error);
+            }
+        }
 
+        // === 创建合成器 ===
+        function createSynth() {
+            try {
+                // 主音量控制
+                const masterGain = audioContext.createGain();
+                masterGain.gain.value = volume;
+                masterGain.connect(analyser);
+                analyser.connect(audioContext.destination);
+                
+                // Kick
+                const kickOsc = audioContext.createOscillator();
+                const kickGain = audioContext.createGain();
+                kickOsc.type = 'sine';
+                kickOsc.frequency.value = 60;
+                kickGain.gain.value = 0;
+                kickOsc.connect(kickGain);
+                kickGain.connect(masterGain);
+                
+                // Hi-hat (white noise)
+                const noiseBuffer = audioContext.createBuffer(1, audioContext.sampleRate * 0.1, audioContext.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+                for (let i = 0; i < noiseBuffer.length; i++) {
+                    output[i] = (Math.random() * 2 - 1) * 0.5;
+                }
+                const noiseSource = audioContext.createBufferSource();
+                noiseSource.buffer = noiseBuffer;
+                noiseSource.loop = true;
+                const noiseFilter = audioContext.createBiquadFilter();
+                noiseFilter.type = 'highpass';
+                noiseFilter.frequency.value = 8000;
+                const noiseGain = audioContext.createGain();
+                noiseGain.gain.value = 0;
+                noiseSource.connect(noiseFilter);
+                noiseFilter.connect(noiseGain);
+                noiseGain.connect(masterGain);
+                
+                // Bassline
+                const bassOsc = audioContext.createOscillator();
+                const bassGain = audioContext.createGain();
+                bassOsc.type = 'sawtooth';
+                bassOsc.frequency.value = 110; // A2
+                bassGain.gain.value = 0.3;
+                bassOsc.connect(bassGain);
+                bassGain.connect(masterGain);
+                
+                // 启动振荡器
+                kickOsc.start();
+                noiseSource.start();
+                bassOsc.start();
+                
+                // 存储音频源
+                audioSources = [kickOsc, kickGain, noiseSource, noiseFilter, noiseGain, bassOsc, bassGain, masterGain];
+                
+                // 创建节奏序列
+                const stepDuration = 60 / bpm / 4;
+                let step = 0;
+                
+                function playStep() {
+                    if (!isAudioPlaying) return;
+                    
+                    // Kick pattern: [1,0,0,0,1,0,0,0]
+                    if (step % 8 === 0 || step % 8 === 4) {
+                        kickGain.gain.setValueAtTime(1, audioContext.currentTime);
+                        kickGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                    }
+                    
+                    // Hi-hat pattern: [0,0,1,0,0,0,1,0]
+                    if (step % 8 === 2 || step % 8 === 6) {
+                        noiseGain.gain.setValueAtTime(0.2, audioContext.currentTime);
+                        noiseGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
+                    }
+                    
+                    // Bassline pattern: switch every 2 beats
+                    if (step % 8 === 0) {
+                        bassOsc.frequency.setValueAtTime(110, audioContext.currentTime); // A2
+                    } else if (step % 8 === 4) {
+                        bassOsc.frequency.setValueAtTime(130.8, audioContext.currentTime); // C3
+                    }
+                    
+                    step = (step + 1) % 16;
+                    setTimeout(playStep, stepDuration * 1000);
+                }
+                
+                playStep();
+            } catch (error) {
+                console.error('创建合成器失败:', error);
+            }
+        }
 
-        // 初始化控制面板
+        // === 初始化控制面板 ===
         function initControls() {
             const controlPanel = document.getElementById('control-panel');
             const togglePanel = document.getElementById('toggle-panel');
@@ -777,6 +1027,42 @@
             togglePanel.addEventListener('click', () => {
                 controlPanel.classList.toggle('collapsed');
             });
+            
+            // 麦克风开关
+            const micToggle = document.getElementById('mic-toggle');
+            micToggle.addEventListener('click', toggleMic);
+            
+            // 音量控制
+            const volumeSlider = document.getElementById('volume-slider');
+            volumeSlider.addEventListener('input', (e) => {
+                volume = parseFloat(e.target.value);
+                if (audioSources[7]) {
+                    audioSources[7].gain.value = volume;
+                }
+            });
+            
+            // BPM控制
+            const bpmSlider = document.getElementById('bpm-slider');
+            const bpmLabel = bpmSlider.previousElementSibling;
+            bpmSlider.addEventListener('input', (e) => {
+                bpm = parseInt(e.target.value);
+                bpmLabel.textContent = `⏱️ BPM: ${bpm}`;
+            });
+            
+            // 节奏预设
+            const presetButtons = document.querySelectorAll('.preset-btn');
+            presetButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const newBpm = parseInt(btn.dataset.bpm);
+                    bpm = newBpm;
+                    bpmSlider.value = newBpm;
+                    bpmLabel.textContent = `⏱️ BPM: ${newBpm}`;
+                });
+            });
+            
+            // 播放/暂停
+            const playPauseBtn = document.getElementById('play-pause');
+            playPauseBtn.addEventListener('click', togglePlayPause);
             
             // 视觉模式切换
             const visualModeBtn = document.getElementById('visual-mode');
@@ -795,16 +1081,79 @@
             freezeToggle.addEventListener('click', toggleFreeze);
         }
 
-        // 切换视觉模式
+        // === 切换麦克风 ===
+        function toggleMic() {
+            const micToggle = document.getElementById('mic-toggle');
+            
+            if (!isMicActive) {
+                // 请求麦克风
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    navigator.mediaDevices.getUserMedia({ audio: true })
+                        .then(stream => {
+                            micSource = audioContext.createMediaStreamSource(stream);
+                            micSource.connect(analyser);
+                            isMicActive = true;
+                            micToggle.textContent = '🎤 麦克风：开启';
+                            micToggle.classList.add('active');
+                            document.getElementById('mic-status').textContent = 'LIVE';
+                            playClickSound();
+                        })
+                        .catch(error => {
+                            console.log('麦克风访问被拒绝:', error);
+                            micToggle.textContent = '🎤 麦克风：未授权';
+                        });
+                }
+            } else {
+                // 关闭麦克风
+                isMicActive = false;
+                micToggle.textContent = '🎤 麦克风：关闭';
+                micToggle.classList.remove('active');
+                document.getElementById('mic-status').textContent = '麦克风未连接，使用内置信号';
+                playClickSound();
+            }
+        }
+
+        // === 切换播放/暂停 ===
+        function togglePlayPause() {
+            const playPauseBtn = document.getElementById('play-pause');
+            
+            if (!isAudioPlaying) {
+                isAudioPlaying = true;
+                playPauseBtn.textContent = '⏸️ 暂停';
+                playPauseBtn.classList.add('active');
+                // 重新创建合成器
+                createSynth();
+                playClickSound();
+            } else {
+                isAudioPlaying = false;
+                playPauseBtn.textContent = '▶ 播放';
+                playPauseBtn.classList.remove('active');
+                // 停止所有音频源
+                audioSources.forEach(source => {
+                    if (source.stop) {
+                        try {
+                            source.stop();
+                        } catch (e) {
+                            // 忽略已停止的音频源
+                        }
+                    }
+                });
+                audioSources = [];
+                playClickSound();
+            }
+        }
+
+        // === 切换视觉模式 ===
         function toggleVisualMode() {
             const visualModeBtn = document.getElementById('visual-mode');
             const modes = ['赛博狂欢', '脉冲矩阵', '全息蓝调', '故障增强'];
             
             currentVisualMode = (currentVisualMode + 1) % modes.length;
             visualModeBtn.textContent = `👁️ 视觉模式：${modes[currentVisualMode]}`;
+            playClickSound();
         }
 
-        // 切换数字雨
+        // === 切换数字雨 ===
         function toggleDigitalRain() {
             const digitalRainToggle = document.getElementById('digital-rain-toggle');
             isDigitalRainActive = !isDigitalRainActive;
@@ -818,28 +1167,35 @@
                 digitalRainToggle.classList.remove('active');
                 digitalRainCanvas.style.display = 'none';
             }
+            
+            playClickSound();
         }
 
-        // 切换色彩主题
+        // === 切换色彩主题 ===
         function toggleTheme() {
             const themeToggle = document.getElementById('theme-toggle');
             const themes = ['紫粉狂欢', '青蓝冷色', '熔金红', '冰白单色'];
-            const themeClasses = ['', 'theme-cyan', 'theme-gold', 'theme-ice'];
-            
-            // 移除所有主题类
-            document.documentElement.classList.remove(...themeClasses);
+            const themeColors = [
+                ['#c000ff', '#ff00a0', '#00f0ff', '#39ff14'],
+                ['#00f0ff', '#00a0ff', '#0060ff', '#00ff80'],
+                ['#ff8000', '#ff0000', '#ff4000', '#ffc000'],
+                ['#ffffff', '#e0e0ff', '#c0c0ff', '#a0a0ff']
+            ];
             
             currentTheme = (currentTheme + 1) % themes.length;
             
-            // 添加当前主题类
-            if (themeClasses[currentTheme]) {
-                document.documentElement.classList.add(themeClasses[currentTheme]);
-            }
+            // 更新CSS变量
+            document.documentElement.style.setProperty('--neon-1', themeColors[currentTheme][0]);
+            document.documentElement.style.setProperty('--neon-2', themeColors[currentTheme][1]);
+            document.documentElement.style.setProperty('--neon-3', themeColors[currentTheme][2]);
+            document.documentElement.style.setProperty('--neon-4', themeColors[currentTheme][3]);
+            document.documentElement.style.setProperty('--border-color', themeColors[currentTheme][0]);
             
             themeToggle.textContent = `🎨 色彩主题：${themes[currentTheme]}`;
+            playClickSound();
         }
 
-        // 切换冻结/恢复
+        // === 切换冻结/恢复 ===
         function toggleFreeze() {
             const freezeToggle = document.getElementById('freeze-toggle');
             isFrozen = !isFrozen;
@@ -847,13 +1203,39 @@
             if (isFrozen) {
                 freezeToggle.textContent = '⏸️ 冻结：开启';
                 freezeToggle.classList.add('active');
+                // 停止音频
+                if (isAudioPlaying) {
+                    togglePlayPause();
+                }
             } else {
                 freezeToggle.textContent = '⏸️ 冻结：关闭';
                 freezeToggle.classList.remove('active');
             }
+            
+            playClickSound();
         }
 
-        // 设置滚动
+        // === 播放点击音效 ===
+        function playClickSound() {
+            if (!audioContext) return;
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.01);
+            
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.01);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.01);
+        }
+
+        // === 设置滚动 ===
         function setupScroll() {
             // 使用GSAP ScrollTrigger
             gsap.to(sections, {
@@ -881,10 +1263,10 @@
                         duration: 1
                     });
                 }
-            }, 8000);
+            }, 10000);
         }
 
-        // 设置交互
+        // === 设置交互 ===
         function setupInteraction() {
             // 鼠标移动
             document.addEventListener('mousemove', (event) => {
@@ -902,25 +1284,49 @@
             
             // 启动按钮
             const startBtn = document.getElementById('start-btn');
-            startBtn.addEventListener('click', () => {
-                startBtn.style.display = 'none';
+            startBtn.addEventListener('click', async () => {
+                try {
+                    if (audioContext.state === 'suspended') {
+                        await audioContext.resume();
+                    }
+                    isAudioPlaying = true;
+                    startBtn.style.display = 'none';
+                    playClickSound();
+                } catch (error) {
+                    console.error('启动音频失败:', error);
+                }
             });
             
-            // 点击页面隐藏启动按钮
-            document.addEventListener('click', () => {
-                document.getElementById('start-btn').style.display = 'none';
+            // 点击页面恢复音频
+            document.addEventListener('click', async () => {
+                try {
+                    if (audioContext && audioContext.state === 'suspended') {
+                        await audioContext.resume();
+                        isAudioPlaying = true;
+                        document.getElementById('start-btn').style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error('恢复音频失败:', error);
+                }
             });
         }
 
-        // 设置键盘快捷键
+        // === 设置键盘快捷键 ===
         function setupKeyboardShortcuts() {
             document.addEventListener('keydown', (event) => {
                 switch (event.key.toLowerCase()) {
+                    case 'm':
+                        toggleMic();
+                        break;
                     case 'v':
                         toggleVisualMode();
                         break;
                     case 'd':
                         toggleDigitalRain();
+                        break;
+                    case ' ': // 空格键
+                        event.preventDefault();
+                        togglePlayPause();
                         break;
                     case 'f':
                         toggleFreeze();
@@ -929,7 +1335,7 @@
             });
         }
 
-        // 主动画循环
+        // === 主动画循环 ===
         function animate() {
             requestAnimationFrame(animate);
             
@@ -944,11 +1350,11 @@
                 drawDigitalRain();
             }
             
-            // 渲染3D场景
-            renderer.render(scene, camera);
+            // 渲染场景
+            composer.render();
         }
 
-        // 更新粒子
+        // === 更新粒子 ===
         function updateParticles() {
             if (particles) {
                 // 旋转粒子
@@ -961,111 +1367,207 @@
                     particles.rotation.y += mouseX * 0.001;
                 }
                 
-                // 更新粒子颜色
-                const colors = particles.geometry.attributes.color.array;
-                const time = Date.now() * 0.001;
-                for (let i = 0; i < colors.length; i += 3) {
-                    // 根据时间和视觉模式调整颜色
-                    const index = i / 3;
-                    const phase = (time + index * 0.1) % 1;
-                    
-                    // 根据视觉模式调整颜色
-                    switch (currentVisualMode) {
-                        case 0: // 赛博狂欢
-                            colors[i] = 0.7 + Math.sin(phase * Math.PI * 2) * 0.3; // 紫色
-                            colors[i + 1] = phase * 0.5; // 粉色
-                            colors[i + 2] = 0.7 + Math.cos(phase * Math.PI * 2) * 0.3; // 蓝色
-                            break;
-                        case 1: // 脉冲矩阵
-                            colors[i] = phase * 0.8; // 蓝色
-                            colors[i + 1] = phase * 0.8; // 蓝色
-                            colors[i + 2] = 1; // 白色
-                            break;
-                        case 2: // 全息蓝调
-                            colors[i] = 0.5 + phase * 0.5; // 浅蓝色
-                            colors[i + 1] = 0.8 + phase * 0.2; // 白色
-                            colors[i + 2] = 1; // 蓝色
-                            break;
-                        case 3: // 故障增强
-                            colors[i] = Math.random() * 0.5 + 0.5; // 随机红色
-                            colors[i + 1] = Math.random() * 0.5; // 随机绿色
-                            colors[i + 2] = Math.random() * 0.5 + 0.5; // 随机蓝色
-                            break;
+                // 音频响应
+                if (isAudioPlaying && analyser) {
+                    try {
+                        analyser.getByteFrequencyData(dataArray);
+                        
+                        // 计算频率能量
+                        const lowFreqEnergy = dataArray.slice(0, 32).reduce((sum, value) => sum + value, 0) / (32 * 255);
+                        const midFreqEnergy = dataArray.slice(32, 128).reduce((sum, value) => sum + value, 0) / (96 * 255);
+                        const highFreqEnergy = dataArray.slice(128, 256).reduce((sum, value) => sum + value, 0) / (128 * 255);
+                        
+                        // 缩放粒子（低频驱动）
+                        const scale = 1 + lowFreqEnergy * 0.3;
+                        particles.scale.set(scale, scale, scale);
+                        
+                        // 更新粒子颜色（中频驱动）
+                        const colors = particleGeometry.attributes.color.array;
+                        for (let i = 0; i < colors.length; i += 3) {
+                            // 蓝紫之间插值
+                            colors[i] = 0.5 + midFreqEnergy * 0.5; // 紫色
+                            colors[i + 1] = 0;
+                            colors[i + 2] = 0.5 + (1 - midFreqEnergy) * 0.5; // 蓝色
+                        }
+                        particleGeometry.attributes.color.needsUpdate = true;
+                        
+                        // 更新旋转速度（高频驱动）
+                        if (!isFrozen) {
+                            particles.rotation.y += highFreqEnergy * 0.001;
+                        }
+                        
+                        // 更新连线
+                        updateLines(highFreqEnergy);
+                        
+                        // 节拍检测
+                        detectBeat(lowFreqEnergy);
+                        
+                        // 更新频谱条
+                        updateSpectrumBar();
+                        
+                    } catch (error) {
+                        console.error('更新粒子失败:', error);
                     }
+                } else {
+                    // 无音频时的默认动画
+                    const time = Date.now() * 0.001;
+                    const colors = particleGeometry.attributes.color.array;
+                    for (let i = 0; i < colors.length; i += 3) {
+                        const phase = (time + i * 0.001) % 1;
+                        colors[i] = 0.7 + Math.sin(phase * Math.PI * 2) * 0.3;
+                        colors[i + 1] = 0;
+                        colors[i + 2] = 0.7 + Math.cos(phase * Math.PI * 2) * 0.3;
+                    }
+                    particleGeometry.attributes.color.needsUpdate = true;
+                    
+                    // 更新连线
+                    updateLines(0.5);
                 }
-                particles.geometry.attributes.color.needsUpdate = true;
             }
         }
 
+        // === 更新连线 ===
+        function updateLines(energy) {
+            if (lines) {
+                const positions = lines.geometry.attributes.position.array;
+                const colors = lines.geometry.attributes.color.array;
+                const particlePositions = particleGeometry.attributes.position.array;
+                const lineCount = positions.length / 6;
+                
+                let lineIndex = 0;
+                for (let i = 0; i < lineCount; i++) {
+                    if (Math.random() < energy * 0.5) {
+                        // 随机选择两个粒子
+                        const p1 = Math.floor(Math.random() * (particlePositions.length / 3));
+                        const p2 = Math.floor(Math.random() * (particlePositions.length / 3));
+                        
+                        // 计算距离
+                        const dx = particlePositions[p1 * 3] - particlePositions[p2 * 3];
+                        const dy = particlePositions[p1 * 3 + 1] - particlePositions[p2 * 3 + 1];
+                        const dz = particlePositions[p1 * 3 + 2] - particlePositions[p2 * 3 + 2];
+                        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                        
+                        // 只绘制近距离的连线
+                        if (distance < 5) {
+                            // 设置连线位置
+                            positions[lineIndex * 6] = particlePositions[p1 * 3];
+                            positions[lineIndex * 6 + 1] = particlePositions[p1 * 3 + 1];
+                            positions[lineIndex * 6 + 2] = particlePositions[p1 * 3 + 2];
+                            positions[lineIndex * 6 + 3] = particlePositions[p2 * 3];
+                            positions[lineIndex * 6 + 4] = particlePositions[p2 * 3 + 1];
+                            positions[lineIndex * 6 + 5] = particlePositions[p2 * 3 + 2];
+                            
+                            // 设置连线颜色
+                            colors[lineIndex * 6] = 0.8 + Math.random() * 0.2; // 紫色
+                            colors[lineIndex * 6 + 1] = 0;
+                            colors[lineIndex * 6 + 2] = 0.8 + Math.random() * 0.2; // 蓝色
+                            colors[lineIndex * 6 + 3] = 0.8 + Math.random() * 0.2;
+                            colors[lineIndex * 6 + 4] = 0;
+                            colors[lineIndex * 6 + 5] = 0.8 + Math.random() * 0.2;
+                            
+                            lineIndex++;
+                        }
+                    }
+                }
+                
+                // 清空剩余连线
+                for (let i = lineIndex; i < lineCount; i++) {
+                    positions[i * 6] = 0;
+                    positions[i * 6 + 1] = 0;
+                    positions[i * 6 + 2] = 0;
+                    positions[i * 6 + 3] = 0;
+                    positions[i * 6 + 4] = 0;
+                    positions[i * 6 + 5] = 0;
+                }
+                
+                lines.geometry.attributes.position.needsUpdate = true;
+                lines.geometry.attributes.color.needsUpdate = true;
+            }
+        }
 
+        // === 节拍检测 ===
+        function detectBeat(energy) {
+            const currentTime = Date.now();
+            
+            if (energy > beatThreshold && currentTime - lastBeatTime > 300) {
+                // 触发节拍效果
+                flashScreen();
+                lastBeatTime = currentTime;
+            }
+        }
 
-        // 绘制Canvas
+        // === 闪白效果 ===
+        function flashScreen() {
+            const flash = document.getElementById('flash');
+            flash.style.opacity = '0.3';
+            setTimeout(() => {
+                flash.style.opacity = '0';
+            }, 100);
+        }
+
+        // === 更新频谱条 ===
+        function updateSpectrumBar() {
+            const bars = document.querySelectorAll('.spectrum柱');
+            bars.forEach((bar, index) => {
+                if (index < dataArray.length / 4) {
+                    const height = dataArray[index] / 255 * 40;
+                    bar.style.height = `${height}px`;
+                }
+            });
+        }
+
+        // === 绘制Canvas ===
         function drawCanvas() {
             if (ctx2d) {
                 try {
                     ctx2d.clearRect(0, 0, canvas2d.width, canvas2d.height);
                     
-                    // 绘制视觉效果
-                    const centerX = canvas2d.width / 2;
-                    const centerY = canvas2d.height / 2;
-                    const radius = 100;
-                    const time = Date.now() * 0.001;
-                    
-                    ctx2d.save();
-                    ctx2d.translate(centerX, centerY);
-                    
-                    for (let i = 0; i < 64; i++) {
-                        const angle = (i / 64) * Math.PI * 2;
-                        const phase = (time + i * 0.1) % 1;
-                        const barLength = phase * 50;
+                    // 绘制环形频谱
+                    if (isAudioPlaying && analyser && dataArray) {
+                        const centerX = canvas2d.width / 2;
+                        const centerY = canvas2d.height / 2;
+                        const radius = 100;
                         
-                        const x1 = Math.cos(angle) * radius;
-                        const y1 = Math.sin(angle) * radius;
-                        const x2 = Math.cos(angle) * (radius + barLength);
-                        const y2 = Math.sin(angle) * (radius + barLength);
+                        ctx2d.save();
+                        ctx2d.translate(centerX, centerY);
                         
-                        // 颜色渐变
-                        const gradient = ctx2d.createLinearGradient(x1, y1, x2, y2);
-                        switch (currentVisualMode) {
-                            case 0:
-                                gradient.addColorStop(0, '#c000ff');
-                                gradient.addColorStop(1, '#00f0ff');
-                                break;
-                            case 1:
-                                gradient.addColorStop(0, '#00f0ff');
-                                gradient.addColorStop(1, '#ffffff');
-                                break;
-                            case 2:
-                                gradient.addColorStop(0, '#00a0ff');
-                                gradient.addColorStop(1, '#ffffff');
-                                break;
-                            case 3:
-                                gradient.addColorStop(0, '#ff00a0');
-                                gradient.addColorStop(1, '#c000ff');
-                                break;
+                        for (let i = 0; i < 64; i++) {
+                            const angle = (i / 64) * Math.PI * 2;
+                            const energy = dataArray[i] / 255;
+                            const barLength = energy * 50;
+                            
+                            const x1 = Math.cos(angle) * radius;
+                            const y1 = Math.sin(angle) * radius;
+                            const x2 = Math.cos(angle) * (radius + barLength);
+                            const y2 = Math.sin(angle) * (radius + barLength);
+                            
+                            // 颜色渐变
+                            const gradient = ctx2d.createLinearGradient(x1, y1, x2, y2);
+                            gradient.addColorStop(0, getComputedStyle(document.documentElement).getPropertyValue('--neon-1'));
+                            gradient.addColorStop(1, getComputedStyle(document.documentElement).getPropertyValue('--neon-3'));
+                            
+                            ctx2d.beginPath();
+                            ctx2d.moveTo(x1, y1);
+                            ctx2d.lineTo(x2, y2);
+                            ctx2d.lineWidth = 2;
+                            ctx2d.strokeStyle = gradient;
+                            ctx2d.stroke();
                         }
                         
-                        ctx2d.beginPath();
-                        ctx2d.moveTo(x1, y1);
-                        ctx2d.lineTo(x2, y2);
-                        ctx2d.lineWidth = 2;
-                        ctx2d.strokeStyle = gradient;
-                        ctx2d.stroke();
+                        ctx2d.restore();
                     }
-                    
-                    ctx2d.restore();
                 } catch (error) {
                     console.error('绘制Canvas失败:', error);
                 }
             }
         }
 
-        // 绘制数字雨
+        // === 绘制数字雨 ===
         function drawDigitalRain() {
             if (ctxRain) {
                 try {
                     // 半透明背景
-                    ctxRain.fillStyle = 'rgba(0, 0, 17, 0.1)';
+                    ctxRain.fillStyle = 'rgba(2, 0, 16, 0.1)';
                     ctxRain.fillRect(0, 0, digitalRainCanvas.width, digitalRainCanvas.height);
                     
                     // 数字雨字符
@@ -1089,7 +1591,12 @@
                     ctxRain.font = '16px monospace';
                     window.rainDrops.forEach(drop => {
                         // 随机颜色
-                        const colors = ['#c000ff', '#ff00a0', '#00f0ff', '#39ff14'];
+                        const colors = [
+                            getComputedStyle(document.documentElement).getPropertyValue('--neon-1'),
+                            getComputedStyle(document.documentElement).getPropertyValue('--neon-2'),
+                            getComputedStyle(document.documentElement).getPropertyValue('--neon-3'),
+                            getComputedStyle(document.documentElement).getPropertyValue('--neon-4')
+                        ];
                         ctxRain.fillStyle = colors[Math.floor(Math.random() * colors.length)];
                         
                         // 绘制字符
@@ -1113,7 +1620,7 @@
             }
         }
 
-        // 页面加载完成后初始化
+        // === 页面加载完成后初始化 ===
         window.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
