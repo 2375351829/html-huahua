@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>粒子银河 · Code is Poetry</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div id="stats" class="ui-overlay">
+        <div id="fps">FPS: 60</div>
+        <div id="particles">Particles: 0</div>
+    </div>
+    
+    <div id="title" class="ui-overlay">粒子银河 · Code is Poetry</div>
+    <div id="author" class="ui-overlay">2023级软件工程X班 · 姓名</div>
+    
+    <button id="music-btn">▶ 播放音乐</button>
+    
+    <div class="auto-play-options">
+        <div>自动播放选项:</div>
+        <label><input type="radio" name="autoPlay" value="muted" checked> 静音自动播放</label>
+        <label><input type="radio" name="autoPlay" value="interactive"> 交互后播放</label>
+        <label><input type="radio" name="autoPlay" value="manual"> 手动播放</label>
+    </div>
+    
+    <div class="effect-mode-options">
+        <div>效果模式:</div>
+        <label><input type="radio" name="effectMode" value="0" checked> 普通模式</label>
+        <label><input type="radio" name="effectMode" value="1"> 轨迹模式</label>
+        <label><input type="radio" name="effectMode" value="2"> 爆炸模式</label>
+        <label><input type="radio" name="effectMode" value="3"> 波浪模式</label>
+    </div>
+    
+    <audio id="bgm" loop muted>
+        <source src="assets/bgm.mp3" type="audio/mpeg">
+    </audio>
+
+    <script src="js/particleSystem.js"></script>
+</body>
+</html>

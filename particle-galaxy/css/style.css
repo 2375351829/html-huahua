@@ -1,0 +1,118 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #000;
+    overflow: hidden;
+    font-family: 'Courier New', monospace;
+}
+
+#canvas {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.ui-overlay {
+    position: absolute;
+    color: #0ff;
+    pointer-events: none;
+    text-shadow: 0 0 10px #0ff;
+    z-index: 10;
+}
+
+#stats {
+    top: 20px;
+    right: 20px;
+    text-align: right;
+    font-size: 16px;
+}
+
+#title {
+    bottom: 20px;
+    left: 20px;
+    font-size: 20px;
+}
+
+#author {
+    bottom: 50px;
+    left: 20px;
+    font-size: 14px;
+    color: #0f0;
+    text-shadow: 0 0 10px #0f0;
+}
+
+#music-btn {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    padding: 10px 20px;
+    background: rgba(0, 255, 255, 0.2);
+    border: 2px solid #0ff;
+    color: #0ff;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    cursor: pointer;
+    text-shadow: 0 0 10px #0ff;
+    z-index: 20;
+    transition: all 0.3s;
+}
+
+#music-btn:hover {
+    background: rgba(0, 255, 255, 0.4);
+    box-shadow: 0 0 20px #0ff;
+}
+
+.auto-play-options {
+    position: absolute;
+    top: 60px;
+    left: 20px;
+    font-size: 14px;
+    color: #0ff;
+    text-shadow: 0 0 10px #0ff;
+    z-index: 15;
+    pointer-events: auto;
+}
+
+.auto-play-options div {
+    margin-bottom: 10px;
+}
+
+.auto-play-options label {
+    display: block;
+    margin-bottom: 5px;
+    cursor: pointer;
+}
+
+.auto-play-options input[type="radio"] {
+    margin-right: 5px;
+}
+
+.effect-mode-options {
+    position: absolute;
+    top: 130px;
+    left: 20px;
+    font-size: 14px;
+    color: #0ff;
+    text-shadow: 0 0 10px #0ff;
+    z-index: 15;
+    pointer-events: auto;
+}
+
+.effect-mode-options div {
+    margin-bottom: 10px;
+}
+
+.effect-mode-options label {
+    display: block;
+    margin-bottom: 5px;
+    cursor: pointer;
+}
+
+.effect-mode-options input[type="radio"] {
+    margin-right: 5px;
+}
