@@ -116,3 +116,28 @@ body {
 .effect-mode-options input[type="radio"] {
     margin-right: 5px;
 }
+
+.shape-mode-options {
+    position: absolute;
+    top: 200px;
+    left: 20px;
+    font-size: 14px;
+    color: #0ff;
+    text-shadow: 0 0 10px #0ff;
+    z-index: 15;
+    pointer-events: auto;
+}
+
+.shape-mode-options div {
+    margin-bottom: 10px;
+}
+
+.shape-mode-options label {
+    display: block;
+    margin-bottom: 5px;
+    cursor: pointer;
+}
+
+.shape-mode-options input[type="radio"] {
+    margin-right: 5px;
+}

@@ -31,8 +31,11 @@ let fps = 60;
 let time = 0;
 let clickRings = [];
 let effectMode = 0; // 0: normal, 1: trail, 2: explosion, 3: wave
+let shapeMode = 0; // 0: galaxy, 1: earth, 2: star ring, 3: tree, 4: river, 5: meteor shower
 let lastFireworkTime = 0;
 let lastMeteorTime = 0;
+let lastShapeChangeTime = 0;
+let shapeChangeInterval = 10000; // 10 seconds
 
 const PARTICLE_COUNT = 250;
 const STAR_COUNT = 150;
@@ -44,23 +47,104 @@ function resize() {
     height = canvas.height = window.innerHeight;
 }
 
+const shapeFunctions = {
+    galaxy: (index, total) => {
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const angle = Math.random() * Math.PI * 2;
+        const radius = Math.random() * Math.min(width, height) * 0.4;
+        return { x: centerX + Math.cos(angle) * radius, y: centerY + Math.sin(angle) * radius };
+    },
+    earth: (index, total) => {
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const angle = (index / total) * Math.PI * 2;
+        const radius = Math.min(width, height) * 0.3;
+        return { x: centerX + Math.cos(angle) * radius, y: centerY + Math.sin(angle) * radius };
+    },
+    starRing: (index, total) => {
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const angle = (index / total) * Math.PI * 2;
+        const radius = Math.min(width, height) * 0.35;
+        return { x: centerX + Math.cos(angle) * radius, y: centerY + Math.sin(angle) * radius };
+    },
+    tree: (index, total) => {
+        const centerX = width / 2;
+        const centerY = height * 0.8;
+        const level = Math.floor((index / total) * 5);
+        const levelRatio = level / 5;
+        const radius = Math.min(width, height) * 0.3 * (1 - levelRatio * 0.7);
+        const angle = (index % 8) / 8 * Math.PI * 2;
+        const yOffset = -level * (height * 0.15);
+        return { x: centerX + Math.cos(angle) * radius * 0.7, y: centerY + yOffset + Math.sin(angle) * radius * 0.3 };
+    },
+    river: (index, total) => {
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const progress = index / total;
+        const x = centerX + Math.sin(progress * Math.PI * 4) * (width * 0.3);
+        const y = centerY + (progress - 0.5) * height * 0.6;
+        return { x, y };
+    },
+    meteorShower: (index, total) => {
+        const x = Math.random() * width;
+        const y = -50 - Math.random() * 200;
+        return { x, y };
+    }
+};
+
 class Particle {
     constructor() {
         this.reset();
     }
 
-    reset() {
-        const centerX = width / 2;
-        const centerY = height / 2;
-        const angle = Math.random() * Math.PI * 2;
-        const radius = Math.random() * Math.min(width, height) * 0.4;
+    reset(index = null, total = PARTICLE_COUNT) {
+        const shapeNames = ['galaxy', 'earth', 'starRing', 'tree', 'river', 'meteorShower'];
+        const shapeName = shapeNames[shapeMode % shapeNames.length];
+        const pos = shapeFunctions[shapeName](index !== null ? index : Math.random() * total, total);
         
-        this.x = centerX + Math.cos(angle) * radius;
-        this.y = centerY + Math.sin(angle) * radius;
+        this.x = pos.x;
+        this.y = pos.y;
         
-        const speed = 0.3 + Math.random() * 0.8;
-        this.vx = -Math.sin(angle) * speed;
-        this.vy = Math.cos(angle) * speed;
+        let speed, vx, vy;
+        switch(shapeName) {
+            case 'earth':
+                const angle = Math.atan2(this.y - height/2, this.x - width/2);
+                speed = 0.2 + Math.random() * 0.5;
+                vx = -Math.sin(angle) * speed;
+                vy = Math.cos(angle) * speed;
+                break;
+            case 'starRing':
+                const ringAngle = Math.atan2(this.y - height/2, this.x - width/2);
+                speed = 0.3 + Math.random() * 0.7;
+                vx = -Math.sin(ringAngle) * speed;
+                vy = Math.cos(ringAngle) * speed;
+                break;
+            case 'tree':
+                speed = 0.1 + Math.random() * 0.3;
+                vx = (Math.random() - 0.5) * speed;
+                vy = (Math.random() - 0.5) * speed;
+                break;
+            case 'river':
+                speed = 0.2 + Math.random() * 0.4;
+                vx = speed;
+                vy = (Math.random() - 0.5) * 0.2;
+                break;
+            case 'meteorShower':
+                speed = 3 + Math.random() * 5;
+                vx = (Math.random() - 0.5) * 2;
+                vy = speed;
+                break;
+            default:
+                const galaxyAngle = Math.random() * Math.PI * 2;
+                speed = 0.3 + Math.random() * 0.8;
+                vx = -Math.sin(galaxyAngle) * speed;
+                vy = Math.cos(galaxyAngle) * speed;
+        }
+        
+        this.vx = vx;
+        this.vy = vy;
         
         this.radius = 1 + Math.random() * 1.5;
         this.baseHue = 180 + Math.random() * 90;
@@ -382,7 +466,9 @@ function init() {
     particles = [];
     stars = [];
     for (let i = 0; i < PARTICLE_COUNT; i++) {
-        particles.push(new Particle());
+        const particle = new Particle();
+        particle.reset(i, PARTICLE_COUNT);
+        particles.push(particle);
     }
     for (let i = 0; i < STAR_COUNT; i++) {
         stars.push(new Star());
@@ -472,6 +558,15 @@ function animate() {
     
     ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
     ctx.fillRect(0, 0, width, height);
+
+    // 自动切换形状
+    if (currentTime - lastShapeChangeTime > shapeChangeInterval) {
+        shapeMode = (shapeMode + 1) % 6;
+        lastShapeChangeTime = currentTime;
+        particles.forEach((p, i) => {
+            p.reset(i, PARTICLE_COUNT);
+        });
+    }
 
     drawBackgroundNebula();
 
@@ -609,6 +704,22 @@ function setupEffectMode() {
     });
 }
 
+function setupShapeMode() {
+    const shapeModeOptions = document.querySelectorAll('input[name="shapeMode"]');
+    
+    function handleShapeModeChange() {
+        const selectedOption = document.querySelector('input[name="shapeMode"]:checked').value;
+        shapeMode = parseInt(selectedOption);
+        particles.forEach((p, i) => {
+            p.reset(i, PARTICLE_COUNT);
+        });
+    }
+    
+    shapeModeOptions.forEach(option => {
+        option.addEventListener('change', handleShapeModeChange);
+    });
+}
+
 window.addEventListener('resize', () => {
     resize();
     init();
@@ -655,4 +766,5 @@ musicBtn.addEventListener('click', () => {
 init();
 setupAutoPlay();
 setupEffectMode();
+setupShapeMode();
 animate();
