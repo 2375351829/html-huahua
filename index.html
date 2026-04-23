@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
     <style>
-        /* CSS 变量定义 */
+        /* CSS 变量定义 - 默认主题：紫粉狂欢 */
         :root {
             --bg-color: #000011;
             --neon-purple: #c000ff;
@@ -16,6 +16,36 @@
             --neon-blue: #00f0ff;
             --neon-green: #39ff14;
             --text-color: #ffffff;
+            --card-bg: rgba(20, 20, 40, 0.7);
+            --panel-bg: rgba(10, 10, 30, 0.8);
+            --border-color: var(--neon-purple);
+        }
+
+        /* 青蓝冷色主题 */
+        :root.theme-cyan {
+            --neon-purple: #00f0ff;
+            --neon-pink: #00a0ff;
+            --neon-blue: #0060ff;
+            --neon-green: #00ff80;
+            --border-color: var(--neon-blue);
+        }
+
+        /* 熔金红主题 */
+        :root.theme-gold {
+            --neon-purple: #ff8000;
+            --neon-pink: #ff0000;
+            --neon-blue: #ff4000;
+            --neon-green: #ffc000;
+            --border-color: var(--neon-pink);
+        }
+
+        /* 冰白单色主题 */
+        :root.theme-ice {
+            --neon-purple: #ffffff;
+            --neon-pink: #e0e0ff;
+            --neon-blue: #c0c0ff;
+            --neon-green: #a0a0ff;
+            --border-color: var(--neon-purple);
         }
 
         /* 全局样式 */
@@ -110,7 +140,11 @@
             margin-bottom: 3rem;
             color: var(--neon-blue);
             text-shadow: 0 0 10px var(--neon-blue);
-            animation: typing 2s steps(30, end);
+            overflow: hidden;
+            border-right: 0.15em solid var(--neon-blue);
+            white-space: nowrap;
+            margin: 0 auto;
+            animation: typing 3s steps(40, end), blink-caret 0.75s step-end infinite;
         }
 
         /* 扫描线效果 */
@@ -159,7 +193,7 @@
         .hologram-card {
             width: 300px;
             height: 200px;
-            background: rgba(20, 20, 40, 0.7);
+            background: var(--card-bg);
             backdrop-filter: blur(20px) saturate(180%);
             border: 1px solid var(--neon-blue);
             border-radius: 10px;
@@ -172,6 +206,12 @@
             position: relative;
             overflow: hidden;
             transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .hologram-card:hover {
+            transform: translateY(-10px) rotateX(5deg) rotateY(5deg);
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.5);
         }
 
         /* 卡片标题 */
@@ -234,7 +274,7 @@
             left: 50%;
             transform: translate(-50%, -50%);
             padding: 1rem 2rem;
-            background: rgba(20, 20, 40, 0.7);
+            background: var(--panel-bg);
             backdrop-filter: blur(20px) saturate(180%);
             border: 2px solid var(--neon-purple);
             border-radius: 50px;
@@ -257,13 +297,182 @@
             top: 20px;
             right: 20px;
             padding: 0.5rem 1rem;
-            background: rgba(20, 20, 40, 0.7);
+            background: var(--panel-bg);
             backdrop-filter: blur(20px) saturate(180%);
             border: 1px solid var(--neon-blue);
             border-radius: 20px;
             font-size: 0.9rem;
             color: var(--neon-blue);
             z-index: 10;
+        }
+
+        /* 互动控制面板 */
+        #control-panel {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 300px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
+            padding: 1.5rem;
+            z-index: 1000;
+            box-shadow: 0 0 30px rgba(192, 0, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        /* 控制面板标题 */
+        #control-panel h3 {
+            color: var(--neon-purple);
+            text-align: center;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 10px var(--neon-purple);
+        }
+
+        /* 控制面板按钮 */
+        .control-btn {
+            display: block;
+            width: 100%;
+            padding: 0.8rem;
+            margin-bottom: 0.8rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--neon-blue);
+            border-radius: 8px;
+            color: var(--text-color);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+
+        .control-btn:hover {
+            background: rgba(0, 240, 255, 0.2);
+            box-shadow: 0 0 15px var(--neon-blue);
+        }
+
+        .control-btn.active {
+            background: rgba(0, 240, 255, 0.3);
+            box-shadow: 0 0 20px var(--neon-blue);
+        }
+
+        /* 滑块容器 */
+        .slider-container {
+            margin-bottom: 1rem;
+        }
+
+        .slider-container label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--neon-blue);
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: var(--neon-purple);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--neon-purple);
+        }
+
+        /* 预设按钮组 */
+        .preset-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .preset-btn {
+            flex: 1;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--neon-pink);
+            border-radius: 6px;
+            color: var(--text-color);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .preset-btn:hover {
+            background: rgba(255, 0, 160, 0.2);
+            box-shadow: 0 0 10px var(--neon-pink);
+        }
+
+        /* 面板折叠按钮 */
+        #toggle-panel {
+            position: absolute;
+            top: -10px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            background: var(--neon-purple);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--neon-purple);
+            transition: all 0.3s ease;
+        }
+
+        #toggle-panel:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px var(--neon-purple);
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .main-title {
+                font-size: 3rem;
+            }
+
+            .sub-title {
+                font-size: 1rem;
+            }
+
+            #cards-container {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .hologram-card {
+                width: 250px;
+                height: 180px;
+            }
+
+            #end-text {
+                font-size: 2rem;
+            }
+
+            #control-panel {
+                width: 250px;
+                padding: 1rem;
+            }
+
+            /* 移动端悬浮圆球 */
+            #control-panel.collapsed {
+                width: 60px;
+                height: 60px;
+                padding: 0;
+                border-radius: 50%;
+            }
+
+            #control-panel.collapsed *:not(#toggle-panel) {
+                display: none;
+            }
         }
 
         /* 动画定义 */
@@ -293,6 +502,11 @@
             to { width: 100%; }
         }
 
+        @keyframes blink-caret {
+            from, to { border-color: transparent; }
+            50% { border-color: var(--neon-blue); }
+        }
+
         @keyframes scan {
             0% {
                 top: -10px;
@@ -317,31 +531,6 @@
             }
             100% {
                 left: -100%;
-            }
-        }
-
-        /* 响应式设计 */
-        @media (max-width: 768px) {
-            .main-title {
-                font-size: 3rem;
-            }
-
-            .sub-title {
-                font-size: 1rem;
-            }
-
-            #cards-container {
-                flex-direction: column;
-                align-items: center;
-            }
-
-            .hologram-card {
-                width: 250px;
-                height: 180px;
-            }
-
-            #end-text {
-                font-size: 2rem;
             }
         }
     </style>
@@ -402,7 +591,44 @@
         </div>
         
         <!-- 启动按钮 -->
-        <button id="start-btn">点击启动</button>
+        <button id="start-btn">▶ 点击启动</button>
+        
+        <!-- 互动控制面板 -->
+        <div id="control-panel">
+            <button id="toggle-panel">⚙️</button>
+            <h3>CONTROL</h3>
+            
+            <!-- 麦克风控制 -->
+            <button class="control-btn" id="mic-toggle">🎤 麦克风：关闭</button>
+            
+            <!-- 音乐控制组 -->
+            <div class="slider-container">
+                <label for="volume-slider">🎵 音量</label>
+                <input type="range" id="volume-slider" class="slider" min="0" max="1" step="0.1" value="0.7">
+            </div>
+            <div class="slider-container">
+                <label for="bpm-slider">⏱️ BPM: 130</label>
+                <input type="range" id="bpm-slider" class="slider" min="60" max="180" step="5" value="130">
+            </div>
+            <div class="preset-buttons">
+                <button class="preset-btn" data-bpm="130">1/1 标准</button>
+                <button class="preset-btn" data-bpm="65">½ 半速</button>
+                <button class="preset-btn" data-bpm="260">X2 加倍</button>
+            </div>
+            <button class="control-btn" id="play-pause">▶ 播放</button>
+            
+            <!-- 视觉模式切换 -->
+            <button class="control-btn" id="visual-mode">👁️ 视觉模式：赛博狂欢</button>
+            
+            <!-- 数字雨开关 -->
+            <button class="control-btn active" id="digital-rain-toggle">🌧️ 数字雨：开启</button>
+            
+            <!-- 色彩主题切换 -->
+            <button class="control-btn" id="theme-toggle">🎨 色彩主题：紫粉狂欢</button>
+            
+            <!-- 冻结/恢复 -->
+            <button class="control-btn" id="freeze-toggle">⏸️ 冻结：关闭</button>
+        </div>
     </div>
 
     <script>
@@ -410,9 +636,17 @@
         let scene, camera, renderer, particles, audioContext, analyser, dataArray;
         let canvas2d, ctx2d, digitalRainCanvas, ctxRain;
         let isAudioPlaying = false;
+        let isMicActive = false;
+        let isDigitalRainActive = true;
+        let isFrozen = false;
         let mouseX = 0, mouseY = 0;
         let currentSection = 0;
         let sections = document.querySelectorAll('.section');
+        let currentVisualMode = 0; // 0: 赛博狂欢, 1: 脉冲矩阵, 2: 全息蓝调, 3: 故障增强
+        let currentTheme = 0; // 0: 紫粉狂欢, 1: 青蓝冷色, 2: 熔金红, 3: 冰白单色
+        let bpm = 130;
+        let volume = 0.7;
+        let audioSources = [];
 
         // 初始化函数
         function init() {
@@ -420,9 +654,11 @@
             initCanvas();
             initUI();
             initAudio();
+            initControls();
             animate();
             setupScroll();
             setupInteraction();
+            setupKeyboardShortcuts();
         }
 
         // 初始化3D场景
@@ -446,7 +682,20 @@
             document.getElementById('canvas3d').appendChild(renderer.domElement);
             
             // 创建粒子系统
-            const particleCount = window.innerWidth > 768 ? 5000 : 2000;
+            createParticles();
+            
+            // 添加光照
+            const light = new THREE.PointLight(0xc000ff, 1, 100);
+            light.position.set(0, 0, 0);
+            scene.add(light);
+            
+            // 窗口大小调整
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        // 创建粒子系统
+        function createParticles() {
+            const particleCount = window.innerWidth > 768 ? 5000 : 2500;
             const geometry = new THREE.BufferGeometry();
             const positions = new Float32Array(particleCount * 3);
             const colors = new Float32Array(particleCount * 3);
@@ -482,14 +731,6 @@
             // 创建粒子
             particles = new THREE.Points(geometry, material);
             scene.add(particles);
-            
-            // 添加光照
-            const light = new THREE.PointLight(0xc000ff, 1, 100);
-            light.position.set(0, 0, 0);
-            scene.add(light);
-            
-            // 窗口大小调整
-            window.addEventListener('resize', onWindowResize);
         }
 
         // 窗口大小调整
@@ -579,9 +820,6 @@
                 // 创建合成器
                 createSynth();
                 
-                // 尝试获取麦克风
-                tryMic();
-                
             } catch (error) {
                 console.error('音频初始化失败:', error);
             }
@@ -589,6 +827,12 @@
 
         // 创建合成器
         function createSynth() {
+            // 主音量控制
+            const masterGain = audioContext.createGain();
+            masterGain.gain.value = volume;
+            masterGain.connect(analyser);
+            analyser.connect(audioContext.destination);
+            
             // 低频贝斯
             const bassOsc = audioContext.createOscillator();
             const bassGain = audioContext.createGain();
@@ -599,30 +843,34 @@
             bassGain.gain.value = 0;
             
             bassOsc.connect(bassGain);
-            bassGain.connect(analyser);
-            analyser.connect(audioContext.destination);
+            bassGain.connect(masterGain);
             
             // 高频镲音
             const hihatOsc = audioContext.createOscillator();
             const hihatGain = audioContext.createGain();
             
-            hihatOsc.type = 'noise';
+            hihatOsc.type = 'square';
             hihatOsc.frequency.value = 8000;
             
             hihatGain.gain.value = 0;
             
             hihatOsc.connect(hihatGain);
-            hihatGain.connect(analyser);
+            hihatGain.connect(masterGain);
             
             // 启动振荡器
             bassOsc.start();
             hihatOsc.start();
             
+            // 存储音频源
+            audioSources = [bassOsc, hihatOsc, bassGain, hihatGain, masterGain];
+            
             // 创建节拍
             let time = audioContext.currentTime;
-            const interval = 0.25;
+            const interval = 60 / bpm;
             
             function playBeat() {
+                if (!isAudioPlaying) return;
+                
                 // 贝斯
                 bassGain.gain.setValueAtTime(0.3, time);
                 bassGain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
@@ -640,19 +888,202 @@
             playBeat();
         }
 
-        // 尝试获取麦克风
-        function tryMic() {
-            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                navigator.mediaDevices.getUserMedia({ audio: true })
-                    .then(stream => {
-                        const micSource = audioContext.createMediaStreamSource(stream);
-                        micSource.connect(analyser);
-                        document.getElementById('mic-status').textContent = '麦克风已连接';
-                    })
-                    .catch(error => {
-                        console.log('麦克风访问被拒绝:', error);
-                    });
+        // 初始化控制面板
+        function initControls() {
+            const controlPanel = document.getElementById('control-panel');
+            const togglePanel = document.getElementById('toggle-panel');
+            
+            // 面板折叠/展开
+            togglePanel.addEventListener('click', () => {
+                controlPanel.classList.toggle('collapsed');
+            });
+            
+            // 麦克风开关
+            const micToggle = document.getElementById('mic-toggle');
+            micToggle.addEventListener('click', toggleMic);
+            
+            // 音量控制
+            const volumeSlider = document.getElementById('volume-slider');
+            volumeSlider.addEventListener('input', (e) => {
+                volume = parseFloat(e.target.value);
+                if (audioSources[4]) {
+                    audioSources[4].gain.value = volume;
+                }
+            });
+            
+            // BPM控制
+            const bpmSlider = document.getElementById('bpm-slider');
+            const bpmLabel = bpmSlider.previousElementSibling;
+            bpmSlider.addEventListener('input', (e) => {
+                bpm = parseInt(e.target.value);
+                bpmLabel.textContent = `⏱️ BPM: ${bpm}`;
+            });
+            
+            // 节奏预设
+            const presetButtons = document.querySelectorAll('.preset-btn');
+            presetButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const newBpm = parseInt(btn.dataset.bpm);
+                    bpm = newBpm;
+                    bpmSlider.value = newBpm;
+                    bpmLabel.textContent = `⏱️ BPM: ${newBpm}`;
+                });
+            });
+            
+            // 播放/暂停
+            const playPauseBtn = document.getElementById('play-pause');
+            playPauseBtn.addEventListener('click', togglePlayPause);
+            
+            // 视觉模式切换
+            const visualModeBtn = document.getElementById('visual-mode');
+            visualModeBtn.addEventListener('click', toggleVisualMode);
+            
+            // 数字雨开关
+            const digitalRainToggle = document.getElementById('digital-rain-toggle');
+            digitalRainToggle.addEventListener('click', toggleDigitalRain);
+            
+            // 色彩主题切换
+            const themeToggle = document.getElementById('theme-toggle');
+            themeToggle.addEventListener('click', toggleTheme);
+            
+            // 冻结/恢复
+            const freezeToggle = document.getElementById('freeze-toggle');
+            freezeToggle.addEventListener('click', toggleFreeze);
+        }
+
+        // 切换麦克风
+        function toggleMic() {
+            const micToggle = document.getElementById('mic-toggle');
+            
+            if (!isMicActive) {
+                // 请求麦克风
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    navigator.mediaDevices.getUserMedia({ audio: true })
+                        .then(stream => {
+                            const micSource = audioContext.createMediaStreamSource(stream);
+                            micSource.connect(analyser);
+                            isMicActive = true;
+                            micToggle.textContent = '🎤 麦克风：开启';
+                            micToggle.classList.add('active');
+                            document.getElementById('mic-status').textContent = 'LIVE';
+                            playClickSound();
+                        })
+                        .catch(error => {
+                            console.log('麦克风访问被拒绝:', error);
+                            micToggle.textContent = '🎤 麦克风：未授权';
+                        });
+                }
+            } else {
+                // 关闭麦克风
+                isMicActive = false;
+                micToggle.textContent = '🎤 麦克风：关闭';
+                micToggle.classList.remove('active');
+                document.getElementById('mic-status').textContent = '麦克风未连接，使用内置信号';
+                playClickSound();
             }
+        }
+
+        // 切换播放/暂停
+        function togglePlayPause() {
+            const playPauseBtn = document.getElementById('play-pause');
+            
+            if (!isAudioPlaying) {
+                isAudioPlaying = true;
+                playPauseBtn.textContent = '⏸️ 暂停';
+                playPauseBtn.classList.add('active');
+                // 重新创建合成器
+                createSynth();
+                playClickSound();
+            } else {
+                isAudioPlaying = false;
+                playPauseBtn.textContent = '▶ 播放';
+                playPauseBtn.classList.remove('active');
+                playClickSound();
+            }
+        }
+
+        // 切换视觉模式
+        function toggleVisualMode() {
+            const visualModeBtn = document.getElementById('visual-mode');
+            const modes = ['赛博狂欢', '脉冲矩阵', '全息蓝调', '故障增强'];
+            
+            currentVisualMode = (currentVisualMode + 1) % modes.length;
+            visualModeBtn.textContent = `👁️ 视觉模式：${modes[currentVisualMode]}`;
+            playClickSound();
+        }
+
+        // 切换数字雨
+        function toggleDigitalRain() {
+            const digitalRainToggle = document.getElementById('digital-rain-toggle');
+            isDigitalRainActive = !isDigitalRainActive;
+            
+            if (isDigitalRainActive) {
+                digitalRainToggle.textContent = '🌧️ 数字雨：开启';
+                digitalRainToggle.classList.add('active');
+                digitalRainCanvas.style.display = 'block';
+            } else {
+                digitalRainToggle.textContent = '🌧️ 数字雨：关闭';
+                digitalRainToggle.classList.remove('active');
+                digitalRainCanvas.style.display = 'none';
+            }
+            
+            playClickSound();
+        }
+
+        // 切换色彩主题
+        function toggleTheme() {
+            const themeToggle = document.getElementById('theme-toggle');
+            const themes = ['紫粉狂欢', '青蓝冷色', '熔金红', '冰白单色'];
+            const themeClasses = ['', 'theme-cyan', 'theme-gold', 'theme-ice'];
+            
+            // 移除所有主题类
+            document.documentElement.classList.remove(...themeClasses);
+            
+            currentTheme = (currentTheme + 1) % themes.length;
+            
+            // 添加当前主题类
+            if (themeClasses[currentTheme]) {
+                document.documentElement.classList.add(themeClasses[currentTheme]);
+            }
+            
+            themeToggle.textContent = `🎨 色彩主题：${themes[currentTheme]}`;
+            playClickSound();
+        }
+
+        // 切换冻结/恢复
+        function toggleFreeze() {
+            const freezeToggle = document.getElementById('freeze-toggle');
+            isFrozen = !isFrozen;
+            
+            if (isFrozen) {
+                freezeToggle.textContent = '⏸️ 冻结：开启';
+                freezeToggle.classList.add('active');
+            } else {
+                freezeToggle.textContent = '⏸️ 冻结：关闭';
+                freezeToggle.classList.remove('active');
+            }
+            
+            playClickSound();
+        }
+
+        // 播放点击音效
+        function playClickSound() {
+            if (!audioContext) return;
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
+            
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.1);
         }
 
         // 设置滚动
@@ -674,7 +1105,7 @@
             
             // 自动滚动
             setInterval(() => {
-                if (!isScrolling) {
+                if (!isFrozen) {
                     currentSection = (currentSection + 1) % sections.length;
                     gsap.to(window, {
                         scrollTo: {
@@ -683,7 +1114,7 @@
                         duration: 1
                     });
                 }
-            }, 10000);
+            }, 8000);
         }
 
         // 设置交互
@@ -710,6 +1141,7 @@
                 }
                 isAudioPlaying = true;
                 startBtn.style.display = 'none';
+                playClickSound();
             });
             
             // 点击页面恢复音频
@@ -718,6 +1150,30 @@
                     audioContext.resume();
                     isAudioPlaying = true;
                     document.getElementById('start-btn').style.display = 'none';
+                }
+            });
+        }
+
+        // 设置键盘快捷键
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', (event) => {
+                switch (event.key.toLowerCase()) {
+                    case 'm':
+                        toggleMic();
+                        break;
+                    case 'v':
+                        toggleVisualMode();
+                        break;
+                    case 'd':
+                        toggleDigitalRain();
+                        break;
+                    case ' ': // 空格键
+                        event.preventDefault();
+                        togglePlayPause();
+                        break;
+                    case 'f':
+                        toggleFreeze();
+                        break;
                 }
             });
         }
@@ -733,7 +1189,9 @@
             drawCanvas();
             
             // 绘制数字雨
-            drawDigitalRain();
+            if (isDigitalRainActive) {
+                drawDigitalRain();
+            }
             
             // 渲染3D场景
             renderer.render(scene, camera);
@@ -743,12 +1201,14 @@
         function updateParticles() {
             if (particles) {
                 // 旋转粒子
-                particles.rotation.x += 0.001;
-                particles.rotation.y += 0.002;
-                
-                // 鼠标交互
-                particles.rotation.x += mouseY * 0.001;
-                particles.rotation.y += mouseX * 0.001;
+                if (!isFrozen) {
+                    particles.rotation.x += 0.001;
+                    particles.rotation.y += 0.002;
+                    
+                    // 鼠标交互
+                    particles.rotation.x += mouseY * 0.001;
+                    particles.rotation.y += mouseX * 0.001;
+                }
                 
                 // 音频响应
                 if (isAudioPlaying && analyser) {
@@ -768,9 +1228,29 @@
                         const freqIndex = Math.floor((i / 3) % dataArray.length);
                         const energy = dataArray[freqIndex] / 255;
                         
-                        colors[i] = 0.7 + energy * 0.3; // 紫色
-                        colors[i + 1] = energy * 0.5; // 粉色
-                        colors[i + 2] = 0.7 + energy * 0.3; // 蓝色
+                        // 根据视觉模式调整颜色
+                        switch (currentVisualMode) {
+                            case 0: // 赛博狂欢
+                                colors[i] = 0.7 + energy * 0.3; // 紫色
+                                colors[i + 1] = energy * 0.5; // 粉色
+                                colors[i + 2] = 0.7 + energy * 0.3; // 蓝色
+                                break;
+                            case 1: // 脉冲矩阵
+                                colors[i] = energy * 0.8; // 蓝色
+                                colors[i + 1] = energy * 0.8; // 蓝色
+                                colors[i + 2] = 1; // 白色
+                                break;
+                            case 2: // 全息蓝调
+                                colors[i] = 0.5 + energy * 0.5; // 浅蓝色
+                                colors[i + 1] = 0.8 + energy * 0.2; // 白色
+                                colors[i + 2] = 1; // 蓝色
+                                break;
+                            case 3: // 故障增强
+                                colors[i] = Math.random() * 0.5 + 0.5; // 随机红色
+                                colors[i + 1] = Math.random() * 0.5; // 随机绿色
+                                colors[i + 2] = Math.random() * 0.5 + 0.5; // 随机蓝色
+                                break;
+                        }
                     }
                     particles.geometry.attributes.color.needsUpdate = true;
                     
@@ -817,8 +1297,24 @@
                         
                         // 颜色渐变
                         const gradient = ctx2d.createLinearGradient(x1, y1, x2, y2);
-                        gradient.addColorStop(0, '#c000ff');
-                        gradient.addColorStop(1, '#00f0ff');
+                        switch (currentVisualMode) {
+                            case 0:
+                                gradient.addColorStop(0, '#c000ff');
+                                gradient.addColorStop(1, '#00f0ff');
+                                break;
+                            case 1:
+                                gradient.addColorStop(0, '#00f0ff');
+                                gradient.addColorStop(1, '#ffffff');
+                                break;
+                            case 2:
+                                gradient.addColorStop(0, '#00a0ff');
+                                gradient.addColorStop(1, '#ffffff');
+                                break;
+                            case 3:
+                                gradient.addColorStop(0, '#ff00a0');
+                                gradient.addColorStop(1, '#c000ff');
+                                break;
+                        }
                         
                         ctx2d.beginPath();
                         ctx2d.moveTo(x1, y1);
@@ -869,7 +1365,9 @@
                     ctxRain.fillText(char, drop.x, drop.y);
                     
                     // 更新位置
-                    drop.y += drop.speed;
+                    if (!isFrozen) {
+                        drop.y += drop.speed;
+                    }
                     
                     // 重置
                     if (drop.y > digitalRainCanvas.height) {
