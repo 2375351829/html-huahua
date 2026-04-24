@@ -1695,6 +1695,8 @@
             currentVisualMode = 0;
             currentTheme = 0;
             currentSpectrumStyle = 0;
+            isDigitalRainActive = true;
+            isAutoScrollActive = true;
             
             // 更新UI
             document.getElementById('bpm-slider').value = 130;
@@ -1731,8 +1733,6 @@
             });
             
             // 重置数字雨和自动滚屏
-            isDigitalRainActive = true;
-            isAutoScrollActive = true;
             document.getElementById('digital-rain-toggle').classList.add('active');
             document.getElementById('auto-scroll-toggle').classList.add('active');
             digitalRainCanvas.style.display = 'block';
@@ -1818,4 +1818,418 @@
         // === 设置交互 ===
         function setupInteraction() {
             // 鼠标移动
-            document.addEventListener('mous
+            document.addEventListener('mousemove', (event) => {
+                mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+                mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+            });
+            
+            // 触摸移动
+            document.addEventListener('touchmove', (event) => {
+                event.preventDefault();
+                const touch = event.touches[0];
+                mouseX = (touch.clientX / window.innerWidth) * 2 - 1;
+                mouseY = -(touch.clientY / window.innerHeight) * 2 + 1;
+            });
+            
+            // 启动按钮
+            const startBtn = document.getElementById('start-btn');
+            startBtn.addEventListener('click', async () => {
+                try {
+                    if (audioContext.state === 'suspended') {
+                        await audioContext.resume();
+                    }
+                    isAudioPlaying = true;
+                    startBtn.style.display = 'none';
+                    playClickSound();
+                } catch (error) {
+                    console.error('启动音频失败:', error);
+                }
+            });
+            
+            // 点击页面恢复音频
+            document.addEventListener('click', async () => {
+                try {
+                    if (audioContext && audioContext.state === 'suspended') {
+                        await audioContext.resume();
+                        isAudioPlaying = true;
+                        document.getElementById('start-btn').style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error('恢复音频失败:', error);
+                }
+            });
+        }
+
+        // === 设置键盘快捷键 ===
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', (event) => {
+                switch (event.key.toLowerCase()) {
+                    case 'm':
+                        toggleMic();
+                        break;
+                    case ' ': // 空格键
+                        event.preventDefault();
+                        togglePlayPause();
+                        break;
+                    case 'h':
+                        togglePanel();
+                        break;
+                    case 'v':
+                        toggleVisualMode();
+                        break;
+                    case 'd':
+                        toggleDigitalRain();
+                        break;
+                    case 'f':
+                        toggleFreeze();
+                        break;
+                }
+            });
+        }
+
+        // === 主动画循环 ===
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // 更新粒子
+            updateParticles();
+            
+            // 绘制Canvas
+            drawCanvas();
+            
+            // 绘制数字雨
+            if (isDigitalRainActive) {
+                drawDigitalRain();
+            }
+            
+            // 渲染场景
+            composer.render();
+        }
+
+        // === 更新粒子 ===
+        function updateParticles() {
+            if (particles) {
+                // 旋转粒子
+                if (!isFrozen) {
+                    particles.rotation.x += 0.001;
+                    particles.rotation.y += 0.002;
+                    
+                    // 鼠标交互
+                    particles.rotation.x += mouseY * 0.001;
+                    particles.rotation.y += mouseX * 0.001;
+                }
+                
+                // 音频响应
+                if (isAudioPlaying && analyser) {
+                    try {
+                        analyser.getByteFrequencyData(dataArray);
+                        
+                        // 计算频率能量
+                        const lowFreqEnergy = dataArray.slice(0, 32).reduce((sum, value) => sum + value, 0) / (32 * 255);
+                        const midFreqEnergy = dataArray.slice(32, 128).reduce((sum, value) => sum + value, 0) / (96 * 255);
+                        const highFreqEnergy = dataArray.slice(128, 256).reduce((sum, value) => sum + value, 0) / (128 * 255);
+                        
+                        // 缩放粒子（低频驱动）
+                        const scale = 1 + lowFreqEnergy * 0.3;
+                        particles.scale.set(scale, scale, scale);
+                        
+                        // 更新粒子颜色（中频驱动）
+                        const colors = particleGeometry.attributes.color.array;
+                        for (let i = 0; i < colors.length; i += 3) {
+                            // 蓝紫之间插值
+                            colors[i] = 0.5 + midFreqEnergy * 0.5; // 紫色
+                            colors[i + 1] = 0;
+                            colors[i + 2] = 0.5 + (1 - midFreqEnergy) * 0.5; // 蓝色
+                        }
+                        particleGeometry.attributes.color.needsUpdate = true;
+                        
+                        // 更新旋转速度（高频驱动）
+                        if (!isFrozen) {
+                            particles.rotation.y += highFreqEnergy * 0.001;
+                        }
+                        
+                        // 更新连线
+                        updateLines(highFreqEnergy);
+                        
+                        // 节拍检测
+                        detectBeat(lowFreqEnergy);
+                        
+                        // 更新频谱条
+                        updateSpectrumBar();
+                        
+                    } catch (error) {
+                        console.error('更新粒子失败:', error);
+                    }
+                } else {
+                    // 无音频时的默认动画
+                    const time = Date.now() * 0.001;
+                    const colors = particleGeometry.attributes.color.array;
+                    for (let i = 0; i < colors.length; i += 3) {
+                        const phase = (time + i * 0.001) % 1;
+                        colors[i] = 0.7 + Math.sin(phase * Math.PI * 2) * 0.3;
+                        colors[i + 1] = 0;
+                        colors[i + 2] = 0.7 + Math.cos(phase * Math.PI * 2) * 0.3;
+                    }
+                    particleGeometry.attributes.color.needsUpdate = true;
+                    
+                    // 更新连线
+                    updateLines(0.5);
+                }
+            }
+        }
+
+        // === 更新连线 ===
+        function updateLines(energy) {
+            if (lines) {
+                const positions = lines.geometry.attributes.position.array;
+                const colors = lines.geometry.attributes.color.array;
+                const particlePositions = particleGeometry.attributes.position.array;
+                const lineCount = positions.length / 6;
+                
+                let lineIndex = 0;
+                for (let i = 0; i < lineCount; i++) {
+                    if (Math.random() < energy * 0.5) {
+                        // 随机选择两个粒子
+                        const p1 = Math.floor(Math.random() * (particlePositions.length / 3));
+                        const p2 = Math.floor(Math.random() * (particlePositions.length / 3));
+                        
+                        // 计算距离
+                        const dx = particlePositions[p1 * 3] - particlePositions[p2 * 3];
+                        const dy = particlePositions[p1 * 3 + 1] - particlePositions[p2 * 3 + 1];
+                        const dz = particlePositions[p1 * 3 + 2] - particlePositions[p2 * 3 + 2];
+                        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                        
+                        // 只绘制近距离的连线
+                        if (distance < 5) {
+                            // 设置连线位置
+                            positions[lineIndex * 6] = particlePositions[p1 * 3];
+                            positions[lineIndex * 6 + 1] = particlePositions[p1 * 3 + 1];
+                            positions[lineIndex * 6 + 2] = particlePositions[p1 * 3 + 2];
+                            positions[lineIndex * 6 + 3] = particlePositions[p2 * 3];
+                            positions[lineIndex * 6 + 4] = particlePositions[p2 * 3 + 1];
+                            positions[lineIndex * 6 + 5] = particlePositions[p2 * 3 + 2];
+                            
+                            // 设置连线颜色
+                            colors[lineIndex * 6] = 0.8 + Math.random() * 0.2; // 紫色
+                            colors[lineIndex * 6 + 1] = 0;
+                            colors[lineIndex * 6 + 2] = 0.8 + Math.random() * 0.2; // 蓝色
+                            colors[lineIndex * 6 + 3] = 0.8 + Math.random() * 0.2;
+                            colors[lineIndex * 6 + 4] = 0;
+                            colors[lineIndex * 6 + 5] = 0.8 + Math.random() * 0.2;
+                            
+                            lineIndex++;
+                        }
+                    }
+                }
+                
+                // 清空剩余连线
+                for (let i = lineIndex; i < lineCount; i++) {
+                    positions[i * 6] = 0;
+                    positions[i * 6 + 1] = 0;
+                    positions[i * 6 + 2] = 0;
+                    positions[i * 6 + 3] = 0;
+                    positions[i * 6 + 4] = 0;
+                    positions[i * 6 + 5] = 0;
+                }
+                
+                lines.geometry.attributes.position.needsUpdate = true;
+                lines.geometry.attributes.color.needsUpdate = true;
+            }
+        }
+
+        // === 节拍检测 ===
+        function detectBeat(energy) {
+            const currentTime = Date.now();
+            
+            if (energy > beatThreshold && currentTime - lastBeatTime > 300) {
+                // 触发节拍效果
+                flashScreen();
+                lastBeatTime = currentTime;
+            }
+        }
+
+        // === 闪白效果 ===
+        function flashScreen() {
+            const flash = document.getElementById('flash');
+            flash.style.opacity = '0.3';
+            setTimeout(() => {
+                flash.style.opacity = '0';
+            }, 100);
+        }
+
+        // === 更新频谱条 ===
+        function updateSpectrumBar() {
+            const bars = document.querySelectorAll('.spectrum柱');
+            bars.forEach((bar, index) => {
+                if (index < dataArray.length / 4) {
+                    const height = dataArray[index] / 255 * 40;
+                    bar.style.height = `${height}px`;
+                }
+            });
+        }
+
+        // === 绘制Canvas ===
+        function drawCanvas() {
+            if (ctx2d) {
+                try {
+                    ctx2d.clearRect(0, 0, canvas2d.width, canvas2d.height);
+                    
+                    // 绘制频谱可视化
+                    if (isAudioPlaying && analyser && dataArray) {
+                        const centerX = canvas2d.width / 2;
+                        const centerY = canvas2d.height / 2;
+                        
+                        switch (currentSpectrumStyle) {
+                            case 0: // 环形放射
+                                drawRingSpectrum(centerX, centerY);
+                                break;
+                            case 1: // 垂直条形
+                                drawBarSpectrum(centerX, centerY);
+                                break;
+                            case 2: // 圆形波纹
+                                drawWaveSpectrum(centerX, centerY);
+                                break;
+                        }
+                    }
+                } catch (error) {
+                    console.error('绘制Canvas失败:', error);
+                }
+            }
+        }
+
+        // === 绘制环形频谱 ===
+        function drawRingSpectrum(centerX, centerY) {
+            const radius = 100;
+            
+            ctx2d.save();
+            ctx2d.translate(centerX, centerY);
+            
+            for (let i = 0; i < 64; i++) {
+                const angle = (i / 64) * Math.PI * 2;
+                const energy = dataArray[i] / 255;
+                const barLength = energy * 50;
+                
+                const x1 = Math.cos(angle) * radius;
+                const y1 = Math.sin(angle) * radius;
+                const x2 = Math.cos(angle) * (radius + barLength);
+                const y2 = Math.sin(angle) * (radius + barLength);
+                
+                // 颜色渐变
+                const gradient = ctx2d.createLinearGradient(x1, y1, x2, y2);
+                gradient.addColorStop(0, getComputedStyle(document.documentElement).getPropertyValue('--neon-1'));
+                gradient.addColorStop(1, getComputedStyle(document.documentElement).getPropertyValue('--neon-3'));
+                
+                ctx2d.beginPath();
+                ctx2d.moveTo(x1, y1);
+                ctx2d.lineTo(x2, y2);
+                ctx2d.lineWidth = 2;
+                ctx2d.strokeStyle = gradient;
+                ctx2d.stroke();
+            }
+            
+            ctx2d.restore();
+        }
+
+        // === 绘制垂直条形频谱 ===
+        function drawBarSpectrum(centerX, centerY) {
+            const barCount = 32;
+            const barWidth = 8;
+            const barSpacing = 4;
+            const barHeight = 100;
+            
+            for (let i = 0; i < barCount; i++) {
+                const energy = dataArray[i] / 255;
+                const height = energy * barHeight;
+                const x = centerX - (barCount * (barWidth + barSpacing)) / 2 + i * (barWidth + barSpacing);
+                const y = centerY + barHeight / 2 - height;
+                
+                // 颜色渐变
+                const gradient = ctx2d.createLinearGradient(x, y + height, x, y);
+                gradient.addColorStop(0, getComputedStyle(document.documentElement).getPropertyValue('--neon-2'));
+                gradient.addColorStop(1, getComputedStyle(document.documentElement).getPropertyValue('--neon-1'));
+                
+                ctx2d.fillStyle = gradient;
+                ctx2d.fillRect(x, y, barWidth, height);
+            }
+        }
+
+        // === 绘制圆形波纹频谱 ===
+        function drawWaveSpectrum(centerX, centerY) {
+            const baseRadius = 80;
+            
+            for (let i = 0; i < 4; i++) {
+                const radius = baseRadius + dataArray[i * 16] / 255 * 40;
+                
+                ctx2d.beginPath();
+                ctx2d.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                
+                const gradient = ctx2d.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+                gradient.addColorStop(0, getComputedStyle(document.documentElement).getPropertyValue('--neon-1'));
+                gradient.addColorStop(1, 'transparent');
+                
+                ctx2d.strokeStyle = gradient;
+                ctx2d.lineWidth = 2;
+                ctx2d.stroke();
+            }
+        }
+
+        // === 绘制数字雨 ===
+        function drawDigitalRain() {
+            if (ctxRain) {
+                try {
+                    // 半透明背景
+                    ctxRain.fillStyle = 'rgba(2, 0, 16, 0.1)';
+                    ctxRain.fillRect(0, 0, digitalRainCanvas.width, digitalRainCanvas.height);
+                    
+                    // 数字雨字符
+                    const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+                    
+                    // 初始化雨滴
+                    if (!window.rainDrops) {
+                        window.rainDrops = [];
+                        const columns = Math.floor(digitalRainCanvas.width / 20);
+                        for (let i = 0; i < columns; i++) {
+                            window.rainDrops.push({
+                                x: i * 20,
+                                y: Math.random() * digitalRainCanvas.height,
+                                speed: 1 + Math.random() * 3,
+                                charIndex: 0
+                            });
+                        }
+                    }
+                    
+                    // 绘制雨滴
+                    ctxRain.font = '16px monospace';
+                    window.rainDrops.forEach(drop => {
+                        // 随机颜色
+                        const colors = [
+                            getComputedStyle(document.documentElement).getPropertyValue('--neon-1'),
+                            getComputedStyle(document.documentElement).getPropertyValue('--neon-2'),
+                            getComputedStyle(document.documentElement).getPropertyValue('--neon-3'),
+                            getComputedStyle(document.documentElement).getPropertyValue('--neon-4')
+                        ];
+                        ctxRain.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+                        
+                        // 绘制字符
+                        const char = chars[Math.floor(Math.random() * chars.length)];
+                        ctxRain.fillText(char, drop.x, drop.y);
+                        
+                        // 更新位置
+                        if (!isFrozen) {
+                            drop.y += drop.speed;
+                        }
+                        
+                        // 重置
+                        if (drop.y > digitalRainCanvas.height) {
+                            drop.y = 0;
+                            drop.speed = 1 + Math.random() * 3;
+                        }
+                    });
+                } catch (error) {
+                    console.error('绘制数字雨失败:', error);
+                }
+            }
+        }
+
+        // === 页面加载完成后初始化 ===
+        window.addEventListener('DOMContentLoaded', init);
