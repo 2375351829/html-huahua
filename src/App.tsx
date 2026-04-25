@@ -60,12 +60,25 @@ function App() {
   }
 
   useEffect(() => {
-    if (chartContainerRef.current && tables.length > 0) {
-      const container = chartContainerRef.current
-      const width = container.clientWidth
-      const height = container.clientHeight
-      
-      generateChart(chartType, tables, relationships, container, { width, height })
+    const updateChart = () => {
+      if (chartContainerRef.current && tables.length > 0) {
+        const container = chartContainerRef.current
+        const width = container.clientWidth
+        const height = container.clientHeight
+        
+        generateChart(chartType, tables, relationships, container, { width, height })
+      }
+    }
+
+    // 初始生成图表
+    updateChart()
+
+    // 添加窗口大小变化监听
+    window.addEventListener('resize', updateChart)
+
+    // 清理函数
+    return () => {
+      window.removeEventListener('resize', updateChart)
     }
   }, [tables, relationships, chartType])
 

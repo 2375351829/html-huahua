@@ -54,7 +54,16 @@ function generateERDiagram(
   const svg = d3.select(container)
     .append('svg')
     .attr('width', width)
-    .attr('height', height);
+    .attr('height', height)
+    .call(d3.zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.1, 4])
+      .on('zoom', (event) => {
+        g.attr('transform', event.transform);
+      })
+    );
+
+  // 创建一个包含所有元素的g元素，用于缩放
+  const g = svg.append('g');
 
   // 创建力导向图
   const simulation = d3.forceSimulation(tables as any)
@@ -64,7 +73,7 @@ function generateERDiagram(
     .force('collision', d3.forceCollide().radius(100));
 
   // 绘制关系线
-  const link = svg.append('g')
+  const link = g.append('g')
     .selectAll('line')
     .data(relationships as any)
     .enter()
@@ -73,7 +82,7 @@ function generateERDiagram(
     .attr('stroke-width', 2);
 
   // 绘制表节点
-  const node = svg.append('g')
+  const node = g.append('g')
     .selectAll('.node')
     .data(tables)
     .enter()
