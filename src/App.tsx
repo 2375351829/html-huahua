@@ -19,10 +19,14 @@ function App() {
     setError(null)
     
     try {
+      console.log('开始解析SQL:', sql)
       const result = parseSQL(sql, databaseType)
+      console.log('解析结果:', result)
       setTables(result.tables)
       setRelationships(result.relationships)
+      console.log('设置状态完成')
     } catch (err) {
+      console.error('解析错误:', err)
       setError('SQL解析错误: ' + (err as Error).message)
     } finally {
       setIsParsing(false)
