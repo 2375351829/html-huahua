@@ -3,7 +3,7 @@
 flowchart TD
   A[用户界面] --> B[前端逻辑]
   B --> C[SQL解析器]
-  C --> D[ER图生成器]
+  C --> D[图表生成器]
   D --> E[可视化渲染]
   B --> F[本地存储]
 ```
@@ -17,7 +17,7 @@ flowchart TD
 ## 3. 路由定义
 | 路由 | 用途 |
 |------|------|
-| / | 主页面，包含SQL输入和ER图展示 |
+| / | 主页面，包含SQL输入和图表展示 |
 
 ## 4. 技术栈详细说明
 - **React**：用于构建用户界面，管理组件状态
@@ -25,9 +25,11 @@ flowchart TD
 - **Tailwind CSS**：用于快速构建响应式界面
 - **Vite**：提供快速的开发和构建体验
 - **sql-parser**：用于解析SQL语句
-- **d3.js**：用于绘制和交互ER图
+- **d3.js**：用于绘制和交互各种图表
+- **mermaid.js**：用于生成流程图、时序图、用例图等
 - **highlight.js**：用于SQL语法高亮
-- **html2canvas**：用于导出ER图为图片
+- **html2canvas**：用于导出图表为图片
+- **jspdf**：用于导出图表为PDF
 
 ## 5. 核心模块设计
 ### 5.1 SQL解析模块
@@ -35,18 +37,24 @@ flowchart TD
 - 支持的SQL语法：MySQL、PostgreSQL、SQLite
 - 输出：结构化的表数据和关系数据
 
-### 5.2 ER图生成模块
-- 功能：根据解析结果生成ER图数据结构
-- 支持：实体框绘制、关系线绘制、属性展示
-- 布局算法：使用力导向图布局
+### 5.2 图表生成模块
+- 功能：根据解析结果生成各种图表数据结构
+- 支持的图表类型：
+  - ER图：实体关系图，展示表结构和关系
+  - 用例图：展示系统功能和用户交互
+  - 功能模块图：展示系统功能模块划分
+  - 流程图：展示业务流程
+  - 时序图：展示系统组件交互时序
+  - 数据流图：展示数据流动过程
+- 布局算法：使用力导向图布局和层次布局
 
 ### 5.3 交互模块
-- 功能：支持拖拽调整实体位置，缩放图表，点击实体查看详情
+- 功能：支持拖拽调整图表元素位置，缩放图表，点击元素查看详情
 - 实现：使用d3.js的拖拽和缩放功能
 
 ### 5.4 导出模块
-- 功能：将ER图导出为PNG图片
-- 实现：使用html2canvas库
+- 功能：将图表导出为PNG图片、PDF等格式
+- 实现：使用html2canvas库和jspdf库
 
 ## 6. 数据结构设计
 ### 6.1 表结构数据
@@ -81,6 +89,7 @@ interface AppState {
   tables: Table[];
   relationships: Relationship[];
   databaseType: 'mysql' | 'postgresql' | 'sqlite';
+  chartType: 'er' | 'use-case' | 'function' | 'flow' | 'sequence' | 'data-flow';
   isParsing: boolean;
   error: string | null;
 }
