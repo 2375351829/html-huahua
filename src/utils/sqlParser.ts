@@ -42,9 +42,9 @@ export function parseSQL(sql: string, databaseType: 'mysql' | 'postgresql' | 'sq
     const trimmedStatement = statement.trim().toLowerCase();
 
     if (trimmedStatement.startsWith('create table')) {
-      parseCreateTable(trimmedStatement, state, databaseType);
+      parseCreateTable(statement, state, databaseType);
     } else if (trimmedStatement.startsWith('alter table')) {
-      parseAlterTable(trimmedStatement, state, databaseType);
+      parseAlterTable(statement, state, databaseType);
     }
   }
 
@@ -70,22 +70,26 @@ function parseCreateTable(statement: string, state: ParserState, databaseType: '
   const columnsMatch = statement.match(/\(([\s\S]*?)\)/);
   if (columnsMatch) {
     const columnsPart = columnsMatch[1];
-    const columnDefinitions = columnsPart.split(',').map(c => c.trim()).filter(c => c);
+    // 处理嵌套括号，确保正确分割列定义
+    const columnDefinitions = splitColumnDefinitions(columnsPart);
 
     for (const columnDef of columnDefinitions) {
-      if (columnDef.toLowerCase().startsWith('primary key')) {
+      const trimmedDef = columnDef.trim();
+      if (!trimmedDef) continue;
+
+      if (trimmedDef.toLowerCase().startsWith('primary key')) {
         // 处理主键定义
-        const primaryKeyMatch = columnDef.match(/primary key\s*\(([^)]+)\)/i);
+        const primaryKeyMatch = trimmedDef.match(/primary key\s*\(([^)]+)\)/i);
         if (primaryKeyMatch) {
           const primaryKeys = primaryKeyMatch[1].split(',').map(k => k.trim());
           table.primaryKeys.push(...primaryKeys);
         }
-      } else if (columnDef.toLowerCase().startsWith('foreign key')) {
+      } else if (trimmedDef.toLowerCase().startsWith('foreign key')) {
         // 处理外键定义
-        parseForeignKey(columnDef, table.name, state);
+        parseForeignKey(trimmedDef, table.name, state);
       } else {
         // 处理列定义
-        const column = parseColumnDefinition(columnDef, databaseType);
+        const column = parseColumnDefinition(trimmedDef, databaseType);
         if (column) {
           table.columns.push(column);
         }
@@ -95,6 +99,31 @@ function parseCreateTable(statement: string, state: ParserState, databaseType: '
 
   state.tables.push(table);
   state.currentTable = table;
+}
+
+function splitColumnDefinitions(columnsPart: string): string[] {
+  const definitions: string[] = [];
+  let current = '';
+  let bracketCount = 0;
+
+  for (const char of columnsPart) {
+    if (char === '(') {
+      bracketCount++;
+    } else if (char === ')') {
+      bracketCount--;
+    } else if (char === ',' && bracketCount === 0) {
+      definitions.push(current);
+      current = '';
+      continue;
+    }
+    current += char;
+  }
+
+  if (current.trim()) {
+    definitions.push(current);
+  }
+
+  return definitions;
 }
 
 function parseAlterTable(statement: string, state: ParserState, _databaseType: 'mysql' | 'postgresql' | 'sqlite') {
