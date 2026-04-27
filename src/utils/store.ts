@@ -163,13 +163,22 @@ export const useStore = create<Store>((set) => ({
         const targetTable = foreignKeyMatch[3];
         const targetField = foreignKeyMatch[5];
         
+        // 确定关系类型
+        let relationshipType: 'one-to-one' | 'one-to-many' | 'many-to-many' = 'many-to-many';
+        
+        // 简单判断：如果源字段是唯一的，可能是一对一关系
+        const sourceFieldDef = fieldRegex.exec(tableContent);
+        if (sourceFieldDef) {
+          // 这里可以根据字段定义进一步判断关系类型
+        }
+        
         relationships.push({
           id: `r${tables.length + 1}-${relationships.length + 1}`,
           sourceTable: tableName,
           sourceField,
           targetTable,
           targetField,
-          type: 'many-to-many',
+          type: relationshipType,
         });
       }
       
