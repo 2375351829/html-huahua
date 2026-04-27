@@ -129,8 +129,7 @@ export const useStore = create<Store>((set) => ({
       console.log('解析表:', tableName);
       
       // 提取当前表的完整定义
-      const nextTableName = i < allTableNames.length - 1 ? allTableNames[i + 1] : null;
-      const tableStartRegex = new RegExp(`CREATE\\s+TABLE\\s*(?:IF\\s+NOT\\s+EXISTS\\s+)?\\`?${tableName}\\`?\\s*\\([\\s\\S]*?\\)`, 'i');
+      const tableStartRegex = new RegExp('CREATE\s+TABLE\s*(?:IF\s+NOT\s+EXISTS\s+)?`?' + tableName + '`?\s*\([\s\S]*?\)', 'i');
       const tableMatch = tableStartRegex.exec(sql);
       
       if (!tableMatch) continue;

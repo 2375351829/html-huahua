@@ -82,7 +82,7 @@ const Home: React.FC = () => {
 
     // 生成关系节点（菱形）和连线
     tables.forEach((table) => {
-      table.relationships.forEach((rel, relIndex) => {
+      table.relationships.forEach((rel) => {
         const sourceTable = tables.find(t => t.name === rel.sourceTable);
         const targetTable = tables.find(t => t.name === rel.targetTable);
         
