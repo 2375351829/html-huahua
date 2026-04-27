@@ -45,6 +45,19 @@ const Home: React.FC = () => {
     setActiveTab('chart');
   };
 
+  // 处理文件上传
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const content = event.target?.result as string;
+        setSqlInput(content);
+      };
+      reader.readAsText(file);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-secondary">
       {/* 头部 */}
@@ -69,9 +82,21 @@ const Home: React.FC = () => {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold text-dark">SQL输入</h2>
                 <div className="flex space-x-2">
-                  <button className="p-2 text-dark hover:text-primary">
-                    <Upload size={18} />
-                  </button>
+                  <div>
+                    <input
+                      type="file"
+                      id="file-upload"
+                      accept=".sql"
+                      className="hidden"
+                      onChange={(e) => handleFileUpload(e)}
+                    />
+                    <button
+                      onClick={() => document.getElementById('file-upload')?.click()}
+                      className="p-2 text-dark hover:text-primary"
+                    >
+                      <Upload size={18} />
+                    </button>
+                  </div>
                   <button className="p-2 text-dark hover:text-primary">
                     <Save size={18} />
                   </button>
