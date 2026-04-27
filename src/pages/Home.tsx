@@ -15,7 +15,7 @@ const Home: React.FC = () => {
   const handleParseSql = () => {
     parseSql(sqlInput);
     // 生成 ER 图节点和边
-    generateErGraph();
+    setTimeout(generateErGraph, 100); // 延迟执行，确保 tables 已经更新
   };
 
   // 生成 ER 图

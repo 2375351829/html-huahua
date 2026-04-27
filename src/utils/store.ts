@@ -108,98 +108,174 @@ export const useStore = create<Store>((set) => ({
   setExportConfig: (config) => set((state) => ({ exportConfig: { ...state.exportConfig, ...config } })),
   
   // 解析 SQL
-  parseSql: (_sql) => {
-    // 这里只是一个简单的模拟，实际项目中需要实现真实的 SQL 解析
-    const tables: Table[] = [
-      {
-        id: '1',
-        name: 'users',
-        comment: '用户表',
-        fields: [
-          {
-            id: '1-1',
-            name: 'id',
-            type: 'INT',
-            isPrimaryKey: true,
-            isNullable: false,
-            defaultValue: null,
-            comment: '用户ID',
-          },
-          {
-            id: '1-2',
-            name: 'name',
-            type: 'VARCHAR(50)',
-            isPrimaryKey: false,
-            isNullable: false,
-            defaultValue: null,
-            comment: '用户名',
-          },
-          {
-            id: '1-3',
-            name: 'email',
-            type: 'VARCHAR(100)',
-            isPrimaryKey: false,
-            isNullable: false,
-            defaultValue: null,
-            comment: '邮箱',
-          },
-        ],
-        relationships: [],
-      },
-      {
-        id: '2',
-        name: 'posts',
-        comment: '文章表',
-        fields: [
-          {
-            id: '2-1',
-            name: 'id',
-            type: 'INT',
-            isPrimaryKey: true,
-            isNullable: false,
-            defaultValue: null,
-            comment: '文章ID',
-          },
-          {
-            id: '2-2',
-            name: 'title',
-            type: 'VARCHAR(100)',
-            isPrimaryKey: false,
-            isNullable: false,
-            defaultValue: null,
-            comment: '标题',
-          },
-          {
-            id: '2-3',
-            name: 'content',
-            type: 'TEXT',
-            isPrimaryKey: false,
-            isNullable: false,
-            defaultValue: null,
-            comment: '内容',
-          },
-          {
-            id: '2-4',
-            name: 'user_id',
-            type: 'INT',
-            isPrimaryKey: false,
-            isNullable: false,
-            defaultValue: null,
-            comment: '用户ID',
-          },
-        ],
-        relationships: [
-          {
-            id: 'r1',
-            sourceTable: 'posts',
-            sourceField: 'user_id',
-            targetTable: 'users',
-            targetField: 'id',
-            type: 'many-to-many',
-          },
-        ],
-      },
-    ];
+  parseSql: (sql) => {
+    // 简单的 SQL 解析逻辑，实际项目中可能需要更复杂的解析器
+    const tables: Table[] = [];
+    const tableRegex = /CREATE\s+TABLE\s+`?([^`]+)`?\s*\(([\s\S]*?)\)\s*(?:ENGINE\s*=\s*[^\s,]+)?\s*(?:COMMENT\s*=\s*['"]([^'"]*)['"])?/gi;
+    
+    let match;
+    while ((match = tableRegex.exec(sql)) !== null) {
+      const tableName = match[1].trim();
+      const tableComment = match[3] || '';
+      const tableContent = match[2];
+      
+      // 解析字段
+      const fields: Field[] = [];
+      const fieldRegex = /`?([^`]+)`?\s+([^\s,]+)\s*(NOT\s+NULL|NULL)?\s*(DEFAULT\s+[^,]+)?\s*(COMMENT\s*['"]([^'"]*)['"])?/gi;
+      
+      let fieldMatch;
+      while ((fieldMatch = fieldRegex.exec(tableContent)) !== null) {
+        const fieldName = fieldMatch[1].trim();
+        const fieldType = fieldMatch[2].trim();
+        const isNullable = fieldMatch[3] !== 'NOT NULL';
+        const defaultValue = fieldMatch[4] ? fieldMatch[4].replace('DEFAULT ', '').trim() : null;
+        const fieldComment = fieldMatch[5] || '';
+        
+        fields.push({
+          id: `${tables.length + 1}-${fields.length + 1}`,
+          name: fieldName,
+          type: fieldType,
+          isPrimaryKey: false,
+          isNullable,
+          defaultValue,
+          comment: fieldComment,
+        });
+      }
+      
+      // 解析主键
+      const primaryKeyRegex = /PRIMARY\s+KEY\s*\((`?([^`]+)`?)\)/i;
+      const primaryKeyMatch = primaryKeyRegex.exec(tableContent);
+      if (primaryKeyMatch) {
+        const primaryKeyField = primaryKeyMatch[2];
+        const field = fields.find(f => f.name === primaryKeyField);
+        if (field) {
+          field.isPrimaryKey = true;
+        }
+      }
+      
+      // 解析外键
+      const relationships: Relationship[] = [];
+      const foreignKeyRegex = /FOREIGN\s+KEY\s*\((`?([^`]+)`?)\)\s*REFERENCES\s+`?([^`]+)`?\s*\((`?([^`]+)`?)\)/gi;
+      
+      let foreignKeyMatch;
+      while ((foreignKeyMatch = foreignKeyRegex.exec(tableContent)) !== null) {
+        const sourceField = foreignKeyMatch[2];
+        const targetTable = foreignKeyMatch[3];
+        const targetField = foreignKeyMatch[5];
+        
+        relationships.push({
+          id: `r${tables.length + 1}-${relationships.length + 1}`,
+          sourceTable: tableName,
+          sourceField,
+          targetTable,
+          targetField,
+          type: 'many-to-many',
+        });
+      }
+      
+      tables.push({
+        id: `${tables.length + 1}`,
+        name: tableName,
+        comment: tableComment,
+        fields,
+        relationships,
+      });
+    }
+    
+    // 如果没有解析到表，使用默认表结构
+    if (tables.length === 0) {
+      tables.push(
+        {
+          id: '1',
+          name: 'users',
+          comment: '用户表',
+          fields: [
+            {
+              id: '1-1',
+              name: 'id',
+              type: 'INT',
+              isPrimaryKey: true,
+              isNullable: false,
+              defaultValue: null,
+              comment: '用户ID',
+            },
+            {
+              id: '1-2',
+              name: 'name',
+              type: 'VARCHAR(50)',
+              isPrimaryKey: false,
+              isNullable: false,
+              defaultValue: null,
+              comment: '用户名',
+            },
+            {
+              id: '1-3',
+              name: 'email',
+              type: 'VARCHAR(100)',
+              isPrimaryKey: false,
+              isNullable: false,
+              defaultValue: null,
+              comment: '邮箱',
+            },
+          ],
+          relationships: [],
+        },
+        {
+          id: '2',
+          name: 'posts',
+          comment: '文章表',
+          fields: [
+            {
+              id: '2-1',
+              name: 'id',
+              type: 'INT',
+              isPrimaryKey: true,
+              isNullable: false,
+              defaultValue: null,
+              comment: '文章ID',
+            },
+            {
+              id: '2-2',
+              name: 'title',
+              type: 'VARCHAR(100)',
+              isPrimaryKey: false,
+              isNullable: false,
+              defaultValue: null,
+              comment: '标题',
+            },
+            {
+              id: '2-3',
+              name: 'content',
+              type: 'TEXT',
+              isPrimaryKey: false,
+              isNullable: false,
+              defaultValue: null,
+              comment: '内容',
+            },
+            {
+              id: '2-4',
+              name: 'user_id',
+              type: 'INT',
+              isPrimaryKey: false,
+              isNullable: false,
+              defaultValue: null,
+              comment: '用户ID',
+            },
+          ],
+          relationships: [
+            {
+              id: 'r1',
+              sourceTable: 'posts',
+              sourceField: 'user_id',
+              targetTable: 'users',
+              targetField: 'id',
+              type: 'many-to-many',
+            },
+          ],
+        }
+      );
+    }
+    
     set({ tables });
   },
   
