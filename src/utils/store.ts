@@ -112,78 +112,38 @@ export const useStore = create<Store>((set) => ({
     console.log('开始解析 SQL:', sql.substring(0, 500));
     const tables: Table[] = [];
     
-    // 简化的表解析逻辑
-    const createTableRegex = /CREATE\s+TABLE\s*(?:IF\s+NOT\s+EXISTS\s+)?`?([^`]+)`?/gi;
-    const tableCommentRegex = /COMMENT\s*=\s*['"]([^'"]+)['"]/i;
+    // 提取所有 CREATE TABLE 语句
+    const createTableRegex = /CREATE\s+TABLE\s*(?:IF\s+NOT\s+EXISTS\s+)?`?([^`]+)`?\s*\(([\s\S]*?)\)\s*(?:ENGINE\s*=\s*[^\s,]+)?\s*(?:DEFAULT\s+CHARSET\s*=\s*[^\s,]+)?\s*(?:COLLATE\s*=\s*[^\s,]+)?\s*(?:COMMENT\s*=\s*['"]([^'"]*)['"])?\s*(?:ROW_FORMAT\s*=\s*[^\s,]+)?\s*;/gi;
     
-    // 提取所有表名
-    let createTableMatch;
-    const allTableNames: string[] = [];
-    while ((createTableMatch = createTableRegex.exec(sql)) !== null) {
-      allTableNames.push(createTableMatch[1].trim());
-    }
+    let tableMatch;
+    let tableIndex = 1;
     
-    // 逐个解析每个表
-    for (let i = 0; i < allTableNames.length; i++) {
-      const tableName = allTableNames[i];
+    while ((tableMatch = createTableRegex.exec(sql)) !== null) {
+      const tableName = tableMatch[1].trim();
+      const tableContent = tableMatch[2];
+      const tableComment = tableMatch[3] || '';
+      
       console.log('解析表:', tableName);
-      
-      // 提取当前表的完整定义
-      const tableStartRegex = new RegExp('CREATE\s+TABLE\s*(?:IF\s+NOT\s+EXISTS\s+)?`?' + tableName + '`?\s*\([\s\S]*?\)', 'i');
-      const tableMatch = tableStartRegex.exec(sql);
-      
-      if (!tableMatch) continue;
-      
-      const tableDefinition = tableMatch[0];
-      console.log('表定义:', tableDefinition.substring(0, 300));
-      
-      // 提取表注释
-      const tableCommentMatch = tableCommentRegex.exec(tableDefinition);
-      const tableComment = tableCommentMatch ? tableCommentMatch[1].trim() : '';
-      
-      // 提取字段和约束部分
-      const contentStart = tableDefinition.indexOf('(');
-      const contentEnd = tableDefinition.lastIndexOf(')');
-      const tableContent = tableDefinition.substring(contentStart + 1, contentEnd);
-      console.log('表内容:', tableContent.substring(0, 500));
+      console.log('表内容长度:', tableContent.length);
       
       // 解析字段
       const fields: Field[] = [];
       
-      // 简单的字段解析逻辑
-      const lines = tableContent.split('\n');
-      for (const line of lines) {
-        const trimmedLine = line.trim();
-        if (!trimmedLine || trimmedLine.startsWith('PRIMARY') || trimmedLine.startsWith('KEY') || 
-            trimmedLine.startsWith('INDEX') || trimmedLine.startsWith('UNIQUE') || 
-            trimmedLine.startsWith('CONSTRAINT') || trimmedLine.startsWith('ENGINE') ||
-            trimmedLine.startsWith('DEFAULT') || trimmedLine.startsWith('COLLATE') ||
-            trimmedLine.startsWith('COMMENT') || trimmedLine.startsWith('ROW_FORMAT')) {
-          continue;
-        }
-        
-        // 提取字段名和类型
-        const fieldNameMatch = trimmedLine.match(/^`?([^`]+)`?/);
-        if (!fieldNameMatch) continue;
-        
-        const fieldName = fieldNameMatch[1].trim();
-        
-        // 提取字段类型
-        const fieldTypeMatch = trimmedLine.match(/`?[^`]+`?\s+([^\s,]+)/);
-        const fieldType = fieldTypeMatch ? fieldTypeMatch[1].trim() : 'VARCHAR(255)';
-        
-        // 检查是否可空
-        const isNullable = !trimmedLine.includes('NOT NULL');
-        
-        // 提取字段注释
-        const commentMatch = trimmedLine.match(/COMMENT\s*['"]([^'"]+)['"]/);
-        const fieldComment = commentMatch ? commentMatch[1].trim() : '';
+      // 字段正则表达式
+      const fieldRegex = /`?([^`]+)`?\s+([^\s,]+)(?:\s*\([^)]*\))?\s*(NOT\s+NULL|NULL)?\s*(DEFAULT\s+[^,]+)?\s*(COMMENT\s*['"]([^'"]*)['"])?,?/g;
+      
+      let fieldMatch;
+      while ((fieldMatch = fieldRegex.exec(tableContent)) !== null) {
+        const fieldName = fieldMatch[1].trim();
+        const fieldType = fieldMatch[2].trim();
+        const isNullable = fieldMatch[3] !== 'NOT NULL';
+        const fieldComment = fieldMatch[5] || '';
         
         // 检查是否是主键
-        const isPrimaryKey = false; // 后续单独处理主键
+        const isPrimaryKey = false; // 后续单独处理
         
         fields.push({
-          id: `${i + 1}-${fields.length + 1}`,
+          id: `${tableIndex}-${fields.length + 1}`,
           name: fieldName,
           type: fieldType,
           isPrimaryKey,
@@ -193,9 +153,9 @@ export const useStore = create<Store>((set) => ({
         });
       }
       
-      // 单独解析主键
+      // 解析主键
       const primaryKeyRegex = /PRIMARY\s+KEY\s*\((?:`?([^`]+)`?)\)/i;
-      const primaryKeyMatch = primaryKeyRegex.exec(tableDefinition);
+      const primaryKeyMatch = primaryKeyRegex.exec(tableContent);
       if (primaryKeyMatch) {
         const primaryKeyField = primaryKeyMatch[1].trim();
         const field = fields.find(f => f.name === primaryKeyField);
@@ -207,19 +167,19 @@ export const useStore = create<Store>((set) => ({
       // 解析外键
       const relationships: Relationship[] = [];
       
-      // 查找所有 CONSTRAINT FOREIGN KEY 定义
-      const constraintRegex = /CONSTRAINT\s+`?[^`]+`?\s+FOREIGN\s+KEY\s*\((?:`?([^`]+)`?)\)\s*REFERENCES\s+`?([^`]+)`?\s*\((?:`?([^`]+)`?)\)/gi;
+      // 外键正则表达式
+      const foreignKeyRegex = /CONSTRAINT\s+`?[^`]+`?\s+FOREIGN\s+KEY\s*\((?:`?([^`]+)`?)\)\s*REFERENCES\s+`?([^`]+)`?\s*\((?:`?([^`]+)`?)\)/gi;
       
-      let constraintMatch;
-      while ((constraintMatch = constraintRegex.exec(tableDefinition)) !== null) {
-        const sourceField = constraintMatch[1].trim();
-        const targetTable = constraintMatch[2].trim();
-        const targetField = constraintMatch[3].trim();
+      let foreignKeyMatch;
+      while ((foreignKeyMatch = foreignKeyRegex.exec(tableContent)) !== null) {
+        const sourceField = foreignKeyMatch[1].trim();
+        const targetTable = foreignKeyMatch[2].trim();
+        const targetField = foreignKeyMatch[3].trim();
         
         console.log('找到关系:', tableName, sourceField, '->', targetTable, targetField);
         
         relationships.push({
-          id: `r${i + 1}-${relationships.length + 1}`,
+          id: `r${tableIndex}-${relationships.length + 1}`,
           sourceTable: tableName,
           sourceField,
           targetTable,
@@ -229,12 +189,14 @@ export const useStore = create<Store>((set) => ({
       }
       
       tables.push({
-        id: `${i + 1}`,
+        id: `${tableIndex}`,
         name: tableName,
         comment: tableComment,
         fields,
         relationships,
       });
+      
+      tableIndex++;
     }
     
     console.log('解析完成，共找到', tables.length, '个表');
