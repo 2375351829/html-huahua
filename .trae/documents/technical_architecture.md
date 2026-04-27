@@ -6,10 +6,12 @@ flowchart TD
     B --> D[ER图生成模块]
     B --> E[AI辅助模块]
     B --> F[导出模块]
-    C --> G[数据模型]
-    D --> G
-    E --> G
+    B --> G[样式管理模块]
+    C --> H[数据模型]
+    D --> H
+    E --> H
     G --> D
+    H --> D
 ```
 
 ## 2. 技术描述
@@ -23,12 +25,12 @@ flowchart TD
   - d3.js（ER图绘制和交互）
   - html2canvas（导出图片）
   - file-saver（文件下载）
+  - monaco-editor（代码编辑器，可选）
 
 ## 3. 路由定义
 | 路由 | 用途 |
 |-------|---------|
 | / | 主页面，包含SQL输入和ER图预览 |
-| /tools | 工具页面，包含AI生成和样式设置 |
 
 ## 4. API定义
 - 无后端API，所有功能在前端实现
@@ -71,6 +73,18 @@ erDiagram
         string referencedTable
         string referencedColumn
     }
+
+    StyleConfig {
+        string backgroundColor
+        string fontName
+        number fontSize
+        number entitySize
+        number attributeSize
+        string entityColor
+        string attributeColor
+        string relationshipColor
+        number layoutCompactness
+    }
 ```
 
 ### 6.2 数据定义语言
@@ -105,11 +119,6 @@ interface Table {
   y: number;
 }
 
-interface ERGraph {
-  tables: Table[];
-  relationships: Relationship[];
-}
-
 interface Relationship {
   id: string;
   sourceTable: string;
@@ -117,5 +126,30 @@ interface Relationship {
   targetTable: string;
   targetColumn: string;
   type: 'one-to-one' | 'one-to-many' | 'many-to-many';
+}
+
+interface ERGraph {
+  tables: Table[];
+  relationships: Relationship[];
+}
+
+interface StyleConfig {
+  backgroundColor: string;
+  fontName: string;
+  fontSize: number;
+  entitySize: number;
+  attributeSize: number;
+  entityColor: string;
+  attributeColor: string;
+  relationshipColor: string;
+  layoutCompactness: number;
+}
+
+interface AppState {
+  sqlInput: string;
+  erGraph: ERGraph | null;
+  styleConfig: StyleConfig;
+  isLoading: boolean;
+  error: string | null;
 }
 ```
