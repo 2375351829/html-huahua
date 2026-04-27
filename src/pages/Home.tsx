@@ -20,20 +20,116 @@ const Home: React.FC = () => {
 
   // 生成 ER 图
   const generateErGraph = () => {
-    const newNodes = tables.map((table, index) => ({
-      id: table.id,
-      data: { table },
-      position: { x: 100 + index * 200, y: 100 },
-    }));
+    const newNodes: any[] = [];
+    const newEdges: any[] = [];
+    const nodePositions: Record<string, { x: number; y: number }> = {};
+    const spacing = 200;
+    const initialX = 100;
+    const initialY = 100;
 
-    const newEdges = tables.flatMap((table) =>
-      table.relationships.map((rel) => ({
-        id: rel.id,
-        source: rel.sourceTable,
-        target: rel.targetTable,
-        label: rel.type,
-      }))
-    );
+    // 生成表节点（矩形）
+    tables.forEach((table, tableIndex) => {
+      const x = initialX + (tableIndex % 2) * spacing * 2;
+      const y = initialY + Math.floor(tableIndex / 2) * spacing * 2;
+      nodePositions[table.id] = { x, y };
+
+      // 表节点（矩形）
+      newNodes.push({
+        id: table.id,
+        data: { label: `${table.name}\n${table.comment || ''}` },
+        position: { x, y },
+        style: { 
+          width: 150, 
+          height: 80, 
+          backgroundColor: '#165DFF', 
+          color: 'white',
+          borderRadius: '4px',
+          textAlign: 'center'
+        },
+      });
+
+      // 生成字段节点（椭圆）
+      table.fields.forEach((field, fieldIndex) => {
+        const fieldId = `${table.id}-field-${fieldIndex}`;
+        const fieldX = x + (fieldIndex % 2) * 120 - 60;
+        const fieldY = y + 120 + Math.floor(fieldIndex / 2) * 60;
+        
+        newNodes.push({
+          id: fieldId,
+          data: { 
+            label: `${field.name}\n${field.type}\n${field.comment || ''}` 
+          },
+          position: { x: fieldX, y: fieldY },
+          style: { 
+            width: 100, 
+            height: 60, 
+            backgroundColor: '#F5F7FA', 
+            color: '#4E5969',
+            borderRadius: '50%',
+            textAlign: 'center'
+          },
+        });
+
+        // 连接表和字段
+        newEdges.push({
+          id: `${table.id}-to-${fieldId}`,
+          source: table.id,
+          target: fieldId,
+          style: { stroke: '#4E5969' },
+        });
+      });
+    });
+
+    // 生成关系节点（菱形）和连线
+    tables.forEach((table) => {
+      table.relationships.forEach((rel, relIndex) => {
+        const sourceTable = tables.find(t => t.name === rel.sourceTable);
+        const targetTable = tables.find(t => t.name === rel.targetTable);
+        
+        if (sourceTable && targetTable) {
+          const sourcePos = nodePositions[sourceTable.id];
+          const targetPos = nodePositions[targetTable.id];
+          
+          if (sourcePos && targetPos) {
+            // 关系节点（菱形）
+            const relId = `rel-${rel.id}`;
+            const relX = (sourcePos.x + targetPos.x) / 2;
+            const relY = (sourcePos.y + targetPos.y) / 2;
+            
+            newNodes.push({
+              id: relId,
+              data: { label: rel.type },
+              position: { x: relX, y: relY },
+              style: { 
+                width: 80, 
+                height: 80, 
+                backgroundColor: '#FF9800', 
+                color: 'white',
+                borderRadius: '4px',
+                textAlign: 'center',
+                transform: 'rotate(45deg)'
+              },
+            });
+
+            // 连接源表和关系
+            newEdges.push({
+              id: `${sourceTable.id}-to-${relId}`,
+              source: sourceTable.id,
+              target: relId,
+              style: { stroke: '#4E5969' },
+            });
+
+            // 连接关系和目标表
+            newEdges.push({
+              id: `${relId}-to-${targetTable.id}`,
+              source: relId,
+              target: targetTable.id,
+              style: { stroke: '#4E5969' },
+            });
+          }
+        }
+      });
+    });
 
     setNodes(newNodes);
     setEdges(newEdges);
