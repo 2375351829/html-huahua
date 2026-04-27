@@ -111,7 +111,8 @@ export const useStore = create<Store>((set) => ({
   parseSql: (sql) => {
     // 简单的 SQL 解析逻辑，实际项目中可能需要更复杂的解析器
     const tables: Table[] = [];
-    const tableRegex = /CREATE\s+TABLE\s+`?([^`]+)`?\s*\(([\s\S]*?)\)\s*(?:ENGINE\s*=\s*[^\s,]+)?\s*(?:COMMENT\s*=\s*['"]([^'"]*)['"])?/gi;
+    // 改进的表解析正则表达式，支持更多格式
+    const tableRegex = /CREATE\s+TABLE\s+`?([^`]+)`?\s*\(([\s\S]*?)\)\s*(?:ENGINE\s*=\s*[^\s,]+)?\s*(?:DEFAULT\s+CHARSET\s*=\s*[^\s,]+)?\s*(?:COLLATE\s*=\s*[^\s,]+)?\s*(?:COMMENT\s*=\s*['"]([^'"]*)['"])?\s*;/gi;
     
     let match;
     while ((match = tableRegex.exec(sql)) !== null) {
@@ -121,7 +122,8 @@ export const useStore = create<Store>((set) => ({
       
       // 解析字段
       const fields: Field[] = [];
-      const fieldRegex = /`?([^`]+)`?\s+([^\s,]+)\s*(NOT\s+NULL|NULL)?\s*(DEFAULT\s+[^,]+)?\s*(COMMENT\s*['"]([^'"]*)['"])?/gi;
+      // 改进的字段解析正则表达式
+      const fieldRegex = /`?([^`]+)`?\s+([^\s,]+)(?:\s*\([^)]*\))?\s*(NOT\s+NULL|NULL)?\s*(DEFAULT\s+[^,]+)?\s*(COMMENT\s*['"]([^'"]*)['"])?,?/gi;
       
       let fieldMatch;
       while ((fieldMatch = fieldRegex.exec(tableContent)) !== null) {
@@ -155,7 +157,8 @@ export const useStore = create<Store>((set) => ({
       
       // 解析外键
       const relationships: Relationship[] = [];
-      const foreignKeyRegex = /FOREIGN\s+KEY\s*\((`?([^`]+)`?)\)\s*REFERENCES\s+`?([^`]+)`?\s*\((`?([^`]+)`?)\)/gi;
+      // 改进的外键解析正则表达式，支持 CONSTRAINT 语法
+      const foreignKeyRegex = /CONSTRAINT\s+`?[^`]+`?\s+FOREIGN\s+KEY\s*\((`?([^`]+)`?)\)\s*REFERENCES\s+`?([^`]+)`?\s*\((`?([^`]+)`?)\)/gi;
       
       let foreignKeyMatch;
       while ((foreignKeyMatch = foreignKeyRegex.exec(tableContent)) !== null) {
@@ -164,12 +167,12 @@ export const useStore = create<Store>((set) => ({
         const targetField = foreignKeyMatch[5];
         
         // 确定关系类型
-        let relationshipType: 'one-to-one' | 'one-to-many' | 'many-to-many' = 'many-to-many';
+        let relationshipType: 'one-to-one' | 'one-to-many' | 'many-to-many' = 'many-to-one';
         
         // 简单判断：如果源字段是唯一的，可能是一对一关系
-        const sourceFieldDef = fieldRegex.exec(tableContent);
-        if (sourceFieldDef) {
-          // 这里可以根据字段定义进一步判断关系类型
+        const uniqueIndexRegex = new RegExp(`UNIQUE\s+INDEX\s+.*\(` + sourceField + `\)`, 'i');
+        if (uniqueIndexRegex.test(tableContent)) {
+          relationshipType = 'one-to-one';
         }
         
         relationships.push({
@@ -278,7 +281,7 @@ export const useStore = create<Store>((set) => ({
               sourceField: 'user_id',
               targetTable: 'users',
               targetField: 'id',
-              type: 'many-to-many',
+              type: 'many-to-one',
             },
           ],
         }

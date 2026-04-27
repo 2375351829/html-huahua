@@ -101,6 +101,7 @@ const Home: React.FC = () => {
               switch (type) {
                 case 'one-to-one': return '一对一';
                 case 'one-to-many': return '一对多';
+                case 'many-to-one': return '多对一';
                 case 'many-to-many': return '多对多';
                 default: return type;
               }
