@@ -17,7 +17,7 @@ interface Relationship {
   sourceField: string;
   targetTable: string;
   targetField: string;
-  type: 'one-to-one' | 'one-to-many' | 'many-to-many';
+  type: 'one-to-one' | 'one-to-many' | 'many-to-one' | 'many-to-many';
 }
 
 interface Table {
